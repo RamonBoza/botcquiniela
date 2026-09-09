@@ -5,7 +5,7 @@ const bytesToHex=(bytes:Uint8Array)=>Array.from(bytes,b=>b.toString(16).padStart
 const hexToBytes=(hex:string)=>new Uint8Array(hex.match(/.{2}/g)?.map(byte=>parseInt(byte,16))??[]);
 async function sha256(value:string){return bytesToHex(new Uint8Array(await crypto.subtle.digest('SHA-256',encoder.encode(value))))}
 export function randomToken(size=32){const value=new Uint8Array(size);crypto.getRandomValues(value);return bytesToHex(value)}
-export async function hashPassword(password:string,saltHex?:string){const salt=saltHex?hexToBytes(saltHex):crypto.getRandomValues(new Uint8Array(16));const key=await crypto.subtle.importKey('raw',encoder.encode(password),'PBKDF2',false,['deriveBits']);const bits=await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt,iterations:210000},key,256);return {hash:bytesToHex(new Uint8Array(bits)),salt:bytesToHex(salt)}}
+export async function hashPassword(password:string,saltHex?:string){const salt=saltHex?hexToBytes(saltHex):crypto.getRandomValues(new Uint8Array(16));const key=await crypto.subtle.importKey('raw',encoder.encode(password),'PBKDF2',false,['deriveBits']);const bits=await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt,iterations:100000},key,256);return {hash:bytesToHex(new Uint8Array(bits)),salt:bytesToHex(salt)}}
 export async function verifyPassword(password:string,salt:string,expected:string){return (await hashPassword(password,salt)).hash===expected}
 export const sessionCookie=(token:string,maxAge=60*60*24*30)=>`qc_session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}`;
 
