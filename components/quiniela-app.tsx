@@ -778,35 +778,41 @@ function LiveOrganizationDashboard({
                 {current?.role === 'ADMIN' ? 'Administrador' : 'Miembro'}
               </p>
             </div>
-            {current?.role === 'ADMIN' && (
-              <button
-                onClick={makeInvite}
-                className="grid size-11 shrink-0 place-items-center rounded-xl border bg-white/[.03] text-[#d9ae5f]"
-                aria-label="Crear o renovar código de invitación"
-              >
-                <UserPlus />
-              </button>
-            )}
           </div>
-          {invite && (
+          {current?.role === 'ADMIN' && (
             <div className="mt-5 rounded-2xl border border-[#d9ae5f]/25 bg-[#d9ae5f]/5 p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-bold">Código de invitación actual</p>
+                  <p className="flex items-center gap-2 text-sm font-bold">
+                    <UserPlus className="size-4 text-[#d9ae5f]" /> Invitar miembros
+                  </p>
                   <p className="mt-1 text-xs text-zinc-500">
-                    Puedes volver aquí para consultarlo cuando lo necesites.
+                    {invite
+                      ? 'Este código seguirá disponible cuando vuelvas.'
+                      : 'Genera un código para que otras personas puedan unirse.'}
                   </p>
                 </div>
-                <button
-                  onClick={makeInvite}
-                  className="text-xs font-bold text-[#d9ae5f]"
-                >
-                  Renovar
-                </button>
+                {invite && (
+                  <button
+                    onClick={makeInvite}
+                    className="text-xs font-bold text-[#d9ae5f]"
+                  >
+                    Renovar
+                  </button>
+                )}
               </div>
-              <code className="mt-3 flex h-11 items-center rounded-lg bg-black/25 px-3 text-lg tracking-widest text-[#d9ae5f]">
-                {invite}
-              </code>
+              {invite ? (
+                <code className="mt-3 flex h-12 items-center justify-center rounded-lg bg-black/25 px-3 text-xl font-bold tracking-[.25em] text-[#d9ae5f]">
+                  {invite}
+                </code>
+              ) : (
+                <Button
+                  onClick={makeInvite}
+                  className="mt-4 w-full bg-[#d9ae5f] font-bold text-[#17120a]"
+                >
+                  Generar código de invitación
+                </Button>
+              )}
             </div>
           )}
           <div className="mt-8 grid grid-cols-2 gap-3">
