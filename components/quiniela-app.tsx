@@ -163,7 +163,30 @@ export function QuinielaApp() {
               .then((data) => setSelected(data.characterIds ?? []));
             setView('play');
           }}
-          results={() => setView('results')}
+          manageGame={(game) => {
+            setGameId(game.id);
+            setOrganizationId(game.organizationId);
+            setName(game.name);
+            setPlayers(game.playerCount);
+            setStatus(game.status);
+            setActual([]);
+            setScript({
+              name: game.scriptName,
+              source: 'BOTC_JSON',
+              characters: JSON.parse(game.charactersJson),
+            });
+            setView('host');
+          }}
+          results={(game) => {
+            setGameId(game.id);
+            setName(game.name);
+            setScript({
+              name: game.scriptName,
+              source: 'BOTC_JSON',
+              characters: JSON.parse(game.charactersJson),
+            });
+            setView('results');
+          }}
         />
       )}
       {view === 'welcome' && (
@@ -422,6 +445,7 @@ function OrganizationDashboard({
   setOrganization,
   createGame,
   joinGame,
+  manageGame,
   results,
 }: {
   organization: string;
@@ -593,7 +617,8 @@ function LiveOrganizationDashboard({
   selectOrganization: (id: string, name: string) => void;
   createGame: (id: string, name: string) => void;
   joinGame: (game: LiveGame) => void;
-  results: () => void;
+  manageGame: (game: LiveGame) => void;
+  results: (game: LiveGame) => void;
 }) {
   const [organizations, setOrganizations] = useState<LiveOrganization[]>([]);
   const [games, setGames] = useState<LiveGame[]>([]);
@@ -791,11 +816,8 @@ function LiveOrganizationDashboard({
             {games
               .filter((g) => g.organizationId === active)
               .map((game) => (
-                <button
+                <div
                   key={game.id}
-                  onClick={() =>
-                    game.status === 'FINISHED' ? results() : joinGame(game)
-                  }
                   className="w-full rounded-2xl border bg-white/[.025] p-5 text-left"
                 >
                   <div className="flex justify-between gap-3">
@@ -818,7 +840,40 @@ function LiveOrganizationDashboard({
                       {game.predictionCount} apuestas
                     </span>
                   </div>
-                </button>
+                  <div className="mt-4 flex gap-2 border-t border-white/[.06] pt-4">
+                    {game.status === 'FINISHED' ? (
+                      <Button
+                        variant="outline"
+                        onClick={() => results(game)}
+                        className="flex-1"
+                      >
+                        Ver resultados
+                      </Button>
+                    ) : (
+                      <>
+                        {game.status === 'OPEN' && (
+                          <Button
+                            variant="outline"
+                            onClick={() => joinGame(game)}
+                            className="flex-1"
+                          >
+                            Hacer mi apuesta
+                          </Button>
+                        )}
+                        {current?.role === 'ADMIN' && (
+                          <Button
+                            onClick={() => manageGame(game)}
+                            className="flex-1 bg-[#d9ae5f] font-bold text-[#17120a]"
+                          >
+                            {game.status === 'OPEN'
+                              ? 'Gestionar y cerrar'
+                              : 'Finalizar partida'}
+                          </Button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
               ))}
             {games.filter((g) => g.organizationId === active).length === 0 && (
               <p className="rounded-xl border border-dashed p-5 text-center text-sm text-zinc-600">
