@@ -74,6 +74,7 @@ export function QuinielaApp() {
   const [saved, setSaved] = useState(false);
   const [person, setPerson] = useState('');
   const [error, setError] = useState('');
+  const [creating, setCreating] = useState(false);
   const [org, setOrg] = useState('');
   const [organizationId, setOrganizationId] = useState('');
   const [gameId, setGameId] = useState('');
@@ -180,27 +181,38 @@ export function QuinielaApp() {
           setPlayers={setPlayers}
           script={script}
           error={error}
+          creating={creating}
           fileRef={fileRef}
           importFile={importFile}
           create={async () => {
-            const response = await fetch('/api/games', {
-              method: 'POST',
-              headers: { 'content-type': 'application/json' },
-              body: JSON.stringify({
-                organizationId,
-                name,
-                script,
-                playerCount: players,
-              }),
-            });
-            const data = await response.json();
-            if (!response.ok) {
-              setError(data.error ?? 'No se ha podido crear la quiniela.');
-              return;
+            setCreating(true);
+            setError('');
+            try {
+              const response = await fetch('/api/games', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({
+                  organizationId,
+                  name,
+                  script,
+                  playerCount: players,
+                }),
+              });
+              const data = await response.json().catch(() => ({}));
+              if (!response.ok) {
+                setError(data.error ?? 'No se ha podido crear la quiniela.');
+                return;
+              }
+              setGameId(data.game.id);
+              setStatus('OPEN');
+              setView('host');
+            } catch {
+              setError(
+                'No se ha podido conectar con el servidor. Inténtalo de nuevo.',
+              );
+            } finally {
+              setCreating(false);
             }
-            setGameId(data.game.id);
-            setStatus('OPEN');
-            setView('host');
           }}
         />
       )}
@@ -916,6 +928,7 @@ function Create(p: {
   setPlayers: (v: number) => void;
   script: ImportedScript;
   error: string;
+  creating: boolean;
   fileRef: React.RefObject<HTMLInputElement | null>;
   importFile: (f?: File) => void;
   create: () => void;
@@ -1009,11 +1022,14 @@ function Create(p: {
           {p.error && <p className="mt-2 text-sm text-red-400">{p.error}</p>}
         </div>
         <Button
-          disabled={!p.name || !p.players || !p.script.characters.length}
+          disabled={
+            p.creating || !p.name || !p.players || !p.script.characters.length
+          }
           onClick={p.create}
           className="h-14 w-full bg-[#d9ae5f] text-base font-extrabold text-[#17120a] hover:bg-[#e5bd72]"
         >
-          Crear para la organización <Sparkles className="ml-1" />
+          {p.creating ? 'Creando…' : 'Crear para la organización'}{' '}
+          {!p.creating && <Sparkles className="ml-1" />}
         </Button>
       </div>
     </section>
