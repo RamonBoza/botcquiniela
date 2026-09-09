@@ -1,0 +1,4 @@
+import { randomToken, requireUser } from '@/lib/server-auth';
+import { db } from '@/lib/server-store';
+
+export async function POST(request:Request){const user=await requireUser(request);const body=await request.json() as {organizationId?:string};const member=await db().prepare("SELECT role FROM organization_members WHERE organization_id=? AND user_id=? AND role='ADMIN'").bind(body.organizationId,user.id).first();if(!member)return Response.json({error:'Solo un administrador puede crear invitaciones.'},{status:403});const code=randomToken(4).toUpperCase();await db().prepare('INSERT INTO organization_invites (id,organization_id,code,created_by,used_count,created_at) VALUES (?,?,?,?,0,?)').bind(crypto.randomUUID(),body.organizationId,code,user.id,Date.now()).run();return Response.json({code})}
