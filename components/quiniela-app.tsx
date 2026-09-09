@@ -649,6 +649,14 @@ function LiveOrganizationDashboard({
     void load();
   }, []);
   const current = organizations.find((o) => o.id === active);
+  useEffect(() => {
+    setInvite('');
+    if (!active || current?.role !== 'ADMIN') return;
+    fetch(`/api/organizations/invite?organizationId=${active}`)
+      .then((response) => (response.ok ? response.json() : { code: null }))
+      .then((data) => setInvite(data.code ?? ''))
+      .catch(() => undefined);
+  }, [active, current?.role]);
   const createOrg = async () => {
     const response = await fetch('/api/organizations', {
       method: 'POST',
@@ -774,7 +782,7 @@ function LiveOrganizationDashboard({
               <button
                 onClick={makeInvite}
                 className="grid size-11 shrink-0 place-items-center rounded-xl border bg-white/[.03] text-[#d9ae5f]"
-                aria-label="Crear invitación"
+                aria-label="Crear o renovar código de invitación"
               >
                 <UserPlus />
               </button>
@@ -782,7 +790,20 @@ function LiveOrganizationDashboard({
           </div>
           {invite && (
             <div className="mt-5 rounded-2xl border border-[#d9ae5f]/25 bg-[#d9ae5f]/5 p-5">
-              <p className="text-sm font-bold">Código de invitación</p>
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-bold">Código de invitación actual</p>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    Puedes volver aquí para consultarlo cuando lo necesites.
+                  </p>
+                </div>
+                <button
+                  onClick={makeInvite}
+                  className="text-xs font-bold text-[#d9ae5f]"
+                >
+                  Renovar
+                </button>
+              </div>
               <code className="mt-3 flex h-11 items-center rounded-lg bg-black/25 px-3 text-lg tracking-widest text-[#d9ae5f]">
                 {invite}
               </code>
