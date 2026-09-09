@@ -445,7 +445,6 @@ function OrganizationDashboard({
   setOrganization,
   createGame,
   joinGame,
-  manageGame,
   results,
 }: {
   organization: string;
@@ -612,6 +611,7 @@ function LiveOrganizationDashboard({
   selectOrganization,
   createGame,
   joinGame,
+  manageGame,
   results,
 }: {
   selectOrganization: (id: string, name: string) => void;
