@@ -63,6 +63,42 @@ const groups = [
   { role: 'MINION', label: 'Esbirros', singular: 'Esbirro', color: '#df6265' },
   { role: 'DEMON', label: 'Demonios', singular: 'Demonio', color: '#bd343d' },
 ] as const;
+
+const roleAppearance: Record<
+  string,
+  { label: string; card: string; badge: string }
+> = {
+  TOWNSFOLK: {
+    label: 'Aldeano',
+    card: 'border-sky-400/25 bg-sky-400/10',
+    badge: 'bg-sky-400/15 text-sky-300',
+  },
+  OUTSIDER: {
+    label: 'Forastero',
+    card: 'border-indigo-400/25 bg-indigo-400/10',
+    badge: 'bg-indigo-400/15 text-indigo-300',
+  },
+  MINION: {
+    label: 'Esbirro',
+    card: 'border-orange-400/25 bg-orange-400/10',
+    badge: 'bg-orange-400/15 text-orange-300',
+  },
+  DEMON: {
+    label: 'Demonio',
+    card: 'border-red-500/30 bg-red-500/10',
+    badge: 'bg-red-500/15 text-red-300',
+  },
+};
+
+function getRoleAppearance(role: string) {
+  return (
+    roleAppearance[role] ?? {
+      label: role,
+      card: 'border-white/10 bg-white/[.025]',
+      badge: 'bg-white/5 text-zinc-300',
+    }
+  );
+}
 export function QuinielaApp() {
   const [view, setView] = useState<View>('auth');
   const [script, setScript] = useState<ImportedScript>(troubleBrewing);
@@ -1675,14 +1711,24 @@ function Results({
       <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
         {script.characters
           .filter((c) => actual.includes(c.id))
-          .map((c) => (
-            <div
-              key={c.id}
-              className="rounded-lg border bg-white/[.025] p-3 text-sm font-semibold"
-            >
-              {c.localizedName ?? c.name}
-            </div>
-          ))}
+          .map((c) => {
+            const appearance = getRoleAppearance(c.type);
+            return (
+              <div
+                key={c.id}
+                className={`rounded-lg border p-3 ${appearance.card}`}
+              >
+                <span className="block text-sm font-semibold">
+                  {c.localizedName ?? c.name}
+                </span>
+                <small
+                  className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${appearance.badge}`}
+                >
+                  {appearance.label}
+                </small>
+              </div>
+            );
+          })}
       </div>
       {reveal && (
         <div
@@ -1710,6 +1756,17 @@ function Results({
                 <X className="size-4" />
               </button>
             </div>
+            <div className="mt-5 flex flex-wrap gap-x-4 gap-y-2 text-xs text-zinc-400">
+              <span className="flex items-center gap-1.5">
+                <Check className="size-4 text-emerald-400" /> Acertado
+              </span>
+              <span className="flex items-center gap-1.5">
+                <X className="size-4 text-red-400" /> Apostado, no estaba
+              </span>
+              <span className="flex items-center gap-1.5">
+                <X className="size-4 text-amber-300" /> Estaba, no predicho
+              </span>
+            </div>
             <div className="mt-6 space-y-2">
               {script.characters
                 .filter(
@@ -1719,26 +1776,40 @@ function Results({
                 .map((c) => {
                   const guessed = reveal.characterIds.includes(c.id),
                     was = actual.includes(c.id);
+                  const appearance = getRoleAppearance(c.type);
                   return (
                     <div
                       key={c.id}
-                      className="flex items-center gap-3 rounded-lg border bg-white/[.025] p-3"
+                      className={`flex items-center gap-3 rounded-lg border p-3 ${appearance.card}`}
                     >
                       <span
-                        className={`grid size-6 place-items-center rounded-full ${guessed && was ? 'bg-emerald-400/15 text-emerald-400' : guessed ? 'bg-red-400/15 text-red-400' : 'bg-blue-400/15 text-blue-300'}`}
+                        className={`grid size-7 shrink-0 place-items-center rounded-full ${guessed && was ? 'bg-emerald-400/20 text-emerald-300' : guessed ? 'bg-red-400/20 text-red-300' : 'bg-amber-300/20 text-amber-200'}`}
                       >
                         {guessed && was ? (
                           <Check className="size-3.5" />
-                        ) : guessed ? (
-                          <X className="size-3.5" />
                         ) : (
-                          <span>•</span>
+                          <X className="size-3.5" />
                         )}
                       </span>
-                      <span className="flex-1 text-sm font-semibold">
-                        {c.localizedName ?? c.name}
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-semibold">
+                          {c.localizedName ?? c.name}
+                        </span>
+                        <small
+                          className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${appearance.badge}`}
+                        >
+                          {appearance.label}
+                        </small>
                       </span>
-                      <small className="text-zinc-500">
+                      <small
+                        className={
+                          guessed && was
+                            ? 'text-emerald-300'
+                            : guessed
+                              ? 'text-red-300'
+                              : 'text-amber-200'
+                        }
+                      >
                         {guessed && was
                           ? 'Acertado'
                           : guessed
