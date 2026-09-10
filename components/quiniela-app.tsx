@@ -63,13 +63,6 @@ const groups = [
   { role: 'MINION', label: 'Esbirros', singular: 'Esbirro', color: '#df6265' },
   { role: 'DEMON', label: 'Demonios', singular: 'Demonio', color: '#bd343d' },
 ] as const;
-const scores = [
-  ['Marta', 11],
-  ['Ramón', 10],
-  ['Pere', 9],
-  ['Alex', 7],
-] as const;
-
 export function QuinielaApp() {
   const [view, setView] = useState<View>('auth');
   const [script, setScript] = useState<ImportedScript>(troubleBrewing);
@@ -332,7 +325,7 @@ export function QuinielaApp() {
         />
       )}
       {view === 'results' && (
-        <Results script={script} actual={actual} selected={selected} />
+        <Results gameId={gameId} script={script} fallbackActual={actual} />
       )}
     </main>
   );
@@ -1577,15 +1570,57 @@ function Host(p: {
 }
 
 function Results({
+  gameId,
   script,
-  actual,
-  selected,
+  fallbackActual,
 }: {
+  gameId: string;
   script: ImportedScript;
-  actual: string[];
-  selected: string[];
+  fallbackActual: string[];
 }) {
-  const [reveal, setReveal] = useState<string | null>(null);
+  type RankingEntry = {
+    userId: string;
+    displayName: string;
+    characterIds: string[];
+    score: number;
+  };
+  const [ranking, setRanking] = useState<RankingEntry[]>([]);
+  const [actual, setActual] = useState(fallbackActual);
+  const [loading, setLoading] = useState(Boolean(gameId));
+  const [resultsError, setResultsError] = useState('');
+  const [revealUserId, setRevealUserId] = useState<string | null>(null);
+  const reveal = ranking.find((entry) => entry.userId === revealUserId);
+
+  useEffect(() => {
+    if (!gameId) {
+      setLoading(false);
+      setResultsError(
+        'Selecciona una quiniela finalizada para ver sus resultados.',
+      );
+      return;
+    }
+    setLoading(true);
+    setResultsError('');
+    apiFetch(`/api/games/results?gameId=${encodeURIComponent(gameId)}`)
+      .then(async (response) => {
+        const body = await response.json();
+        if (!response.ok)
+          throw new Error(
+            body.error ?? 'No se han podido cargar los resultados.',
+          );
+        setActual(body.actualCharacterIds ?? []);
+        setRanking(body.ranking ?? []);
+      })
+      .catch((reason) =>
+        setResultsError(
+          reason instanceof Error
+            ? reason.message
+            : 'No se han podido cargar los resultados.',
+        ),
+      )
+      .finally(() => setLoading(false));
+  }, [gameId]);
+
   return (
     <section className="mx-auto max-w-2xl px-5 py-9">
       <div className="text-center">
@@ -1598,10 +1633,25 @@ function Results({
         <h1 className="display mt-1 text-5xl font-bold">Clasificación</h1>
       </div>
       <div className="mt-8 space-y-2">
-        {scores.map(([player, score], i) => (
+        {loading && (
+          <p className="rounded-xl border bg-white/[.025] p-5 text-center text-sm text-zinc-400">
+            Calculando la clasificación…
+          </p>
+        )}
+        {!loading && resultsError && (
+          <p className="rounded-xl border border-red-400/25 bg-red-400/5 p-5 text-center text-sm text-red-300">
+            {resultsError}
+          </p>
+        )}
+        {!loading && !resultsError && ranking.length === 0 && (
+          <p className="rounded-xl border bg-white/[.025] p-5 text-center text-sm text-zinc-400">
+            Nadie presentó una apuesta para esta quiniela.
+          </p>
+        )}
+        {ranking.map((entry, i) => (
           <button
-            key={player}
-            onClick={() => setReveal(player)}
+            key={entry.userId}
+            onClick={() => setRevealUserId(entry.userId)}
             className={`flex w-full items-center gap-4 rounded-xl border p-4 text-left ${i === 0 ? 'border-[#d9ae5f]/35 bg-[#d9ae5f]/8' : 'bg-white/[.025]'}`}
           >
             <span
@@ -1609,9 +1659,9 @@ function Results({
             >
               {i === 0 ? <Crown className="size-5" /> : i + 1}
             </span>
-            <b className="flex-1">{player}</b>
+            <b className="flex-1">{entry.displayName}</b>
             <span className="display text-xl font-bold">
-              {score}{' '}
+              {entry.score}{' '}
               <small className="font-sans text-xs font-normal text-zinc-500">
                 puntos
               </small>
@@ -1637,7 +1687,7 @@ function Results({
       {reveal && (
         <div
           className="fixed inset-0 z-50 flex items-end bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:justify-center sm:p-5"
-          onClick={() => setReveal(null)}
+          onClick={() => setRevealUserId(null)}
         >
           <div
             className="max-h-[85svh] w-full max-w-lg overflow-auto rounded-t-3xl border bg-[#19161f] p-6 sm:rounded-2xl"
@@ -1649,11 +1699,11 @@ function Results({
                   Reveal
                 </p>
                 <h2 className="display text-3xl font-bold">
-                  Quiniela de {reveal}
+                  Quiniela de {reveal.displayName}
                 </h2>
               </div>
               <button
-                onClick={() => setReveal(null)}
+                onClick={() => setRevealUserId(null)}
                 className="grid size-9 place-items-center rounded-full bg-white/5"
                 aria-label="Cerrar"
               >
@@ -1662,9 +1712,12 @@ function Results({
             </div>
             <div className="mt-6 space-y-2">
               {script.characters
-                .filter((c) => selected.includes(c.id) || actual.includes(c.id))
+                .filter(
+                  (c) =>
+                    reveal.characterIds.includes(c.id) || actual.includes(c.id),
+                )
                 .map((c) => {
-                  const guessed = selected.includes(c.id),
+                  const guessed = reveal.characterIds.includes(c.id),
                     was = actual.includes(c.id);
                   return (
                     <div
@@ -1697,8 +1750,7 @@ function Results({
                 })}
             </div>
             <p className="display mt-6 text-center text-2xl font-bold">
-              {selected.filter((id) => actual.includes(id)).length} /{' '}
-              {actual.length} aciertos
+              {reveal.score} / {actual.length} aciertos
             </p>
           </div>
         </div>
