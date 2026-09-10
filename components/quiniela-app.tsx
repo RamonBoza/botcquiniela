@@ -81,18 +81,38 @@ export function QuinielaApp() {
   const [organizationId, setOrganizationId] = useState('');
   const [gameId, setGameId] = useState('');
   const [superAdmin, setSuperAdmin] = useState(false);
+  const sessionUserId = useRef('');
   const fileRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     fetch('/api/auth')
       .then((r) => r.json())
       .then((data) => {
         if (data.user) {
+          sessionUserId.current = data.user.id;
           setPerson(data.user.displayName);
           setSuperAdmin(Boolean(data.user.isSuperAdmin));
           setView('dashboard');
         }
       })
       .catch(() => undefined);
+  }, []);
+  useEffect(() => {
+    const verifySession = () => {
+      if (document.visibilityState !== 'visible' || !sessionUserId.current)
+        return;
+      fetch('/api/auth')
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.user?.id !== sessionUserId.current) location.reload();
+        })
+        .catch(() => undefined);
+    };
+    window.addEventListener('focus', verifySession);
+    document.addEventListener('visibilitychange', verifySession);
+    return () => {
+      window.removeEventListener('focus', verifySession);
+      document.removeEventListener('visibilitychange', verifySession);
+    };
   }, []);
   const enter = () => {
     if (!person.trim()) {
@@ -136,6 +156,7 @@ export function QuinielaApp() {
       {view === 'auth' && (
         <AccountAccess
           onDone={(user) => {
+            sessionUserId.current = user.id;
             setPerson(user.displayName);
             setSuperAdmin(Boolean(user.isSuperAdmin));
             setView('dashboard');
@@ -144,6 +165,7 @@ export function QuinielaApp() {
       )}
       {view === 'dashboard' && (
         <LiveOrganizationDashboard
+          signedInAs={person}
           openAdmin={superAdmin ? () => setView('admin') : undefined}
           selectOrganization={(id, orgName) => {
             setOrganizationId(id);
@@ -343,7 +365,11 @@ function Topbar({ view, back }: { view: View; back: () => void }) {
 function AccountAccess({
   onDone,
 }: {
-  onDone: (user: { displayName: string; isSuperAdmin?: boolean }) => void;
+  onDone: (user: {
+    id: string;
+    displayName: string;
+    isSuperAdmin?: boolean;
+  }) => void;
 }) {
   const [register, setRegister] = useState(true);
   const [name, setName] = useState('');
@@ -375,11 +401,9 @@ function AccountAccess({
           password,
         }),
       });
-      const data = await response
-        .json()
-        .catch(() => ({
-          error: 'El servicio no ha podido completar la solicitud.',
-        }));
+      const data = await response.json().catch(() => ({
+        error: 'El servicio no ha podido completar la solicitud.',
+      }));
       if (!response.ok) {
         setMessage(data.error ?? 'No se ha podido iniciar la sesión.');
         return;
@@ -624,6 +648,7 @@ type LiveGame = {
   predictionCount: number;
 };
 function LiveOrganizationDashboard({
+  signedInAs,
   openAdmin,
   selectOrganization,
   createGame,
@@ -631,6 +656,7 @@ function LiveOrganizationDashboard({
   manageGame,
   results,
 }: {
+  signedInAs: string;
   openAdmin?: () => void;
   selectOrganization: (id: string, name: string) => void;
   createGame: (id: string, name: string) => void;
@@ -698,8 +724,10 @@ function LiveOrganizationDashboard({
       body: JSON.stringify({ organizationId: active }),
     });
     const data = await response.json();
-    if (response.ok) setInvite(data.code);
-    else setMessage(data.error);
+    if (response.ok) {
+      setInvite(data.code);
+      setMessage('');
+    } else setMessage(data.error);
   };
   const join = async () => {
     const response = await fetch('/api/organizations/join', {
@@ -723,6 +751,9 @@ function LiveOrganizationDashboard({
           <MoonStar className="size-4 text-[#d9ae5f]" /> QUINIELA CLOCKTOWER
         </div>
         <div className="flex items-center gap-4">
+          <span className="max-w-24 truncate text-[10px] text-zinc-600 sm:max-w-none sm:text-xs">
+            Sesión: <b className="text-zinc-400">{signedInAs}</b>
+          </span>
           {openAdmin && (
             <button
               onClick={openAdmin}
