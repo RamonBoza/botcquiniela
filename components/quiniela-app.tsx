@@ -24,6 +24,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
+import { AdminPanel } from '@/components/admin-panel';
 import {
   BotcJsonScriptImporter,
   troubleBrewing,
@@ -34,6 +35,7 @@ import {
 type View =
   | 'auth'
   | 'dashboard'
+  | 'admin'
   | 'welcome'
   | 'create'
   | 'host'
@@ -78,6 +80,7 @@ export function QuinielaApp() {
   const [org, setOrg] = useState('');
   const [organizationId, setOrganizationId] = useState('');
   const [gameId, setGameId] = useState('');
+  const [superAdmin, setSuperAdmin] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     fetch('/api/auth')
@@ -85,6 +88,7 @@ export function QuinielaApp() {
       .then((data) => {
         if (data.user) {
           setPerson(data.user.displayName);
+          setSuperAdmin(Boolean(data.user.isSuperAdmin));
           setView('dashboard');
         }
       })
@@ -119,7 +123,8 @@ export function QuinielaApp() {
         view === 'join' ||
         view === 'create' ||
         view === 'host' ||
-        view === 'results'
+        view === 'results' ||
+        view === 'admin'
         ? 'dashboard'
         : 'welcome',
     );
@@ -130,14 +135,16 @@ export function QuinielaApp() {
       )}
       {view === 'auth' && (
         <AccountAccess
-          onDone={(displayName) => {
-            setPerson(displayName);
+          onDone={(user) => {
+            setPerson(user.displayName);
+            setSuperAdmin(Boolean(user.isSuperAdmin));
             setView('dashboard');
           }}
         />
       )}
       {view === 'dashboard' && (
         <LiveOrganizationDashboard
+          openAdmin={superAdmin ? () => setView('admin') : undefined}
           selectOrganization={(id, orgName) => {
             setOrganizationId(id);
             setOrg(orgName);
@@ -189,6 +196,7 @@ export function QuinielaApp() {
           }}
         />
       )}
+      {view === 'admin' && <AdminPanel />}
       {view === 'welcome' && (
         <Welcome
           onCreate={() => setView('create')}
@@ -322,7 +330,9 @@ function Topbar({ view, back }: { view: View; back: () => void }) {
               ? 'MESA DEL NARRADOR'
               : view === 'results'
                 ? 'RESULTADOS'
-                : 'QUINIELA'}
+                : view === 'admin'
+                  ? 'SUPERADMINISTRACIÓN'
+                  : 'QUINIELA'}
         </div>
         <span className="size-10" />
       </div>
@@ -330,7 +340,11 @@ function Topbar({ view, back }: { view: View; back: () => void }) {
   );
 }
 
-function AccountAccess({ onDone }: { onDone: (name: string) => void }) {
+function AccountAccess({
+  onDone,
+}: {
+  onDone: (user: { displayName: string; isSuperAdmin?: boolean }) => void;
+}) {
   const [register, setRegister] = useState(true);
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
@@ -363,12 +377,14 @@ function AccountAccess({ onDone }: { onDone: (name: string) => void }) {
       });
       const data = await response
         .json()
-        .catch(() => ({ error: 'El servicio no ha podido completar la solicitud.' }));
+        .catch(() => ({
+          error: 'El servicio no ha podido completar la solicitud.',
+        }));
       if (!response.ok) {
         setMessage(data.error ?? 'No se ha podido iniciar la sesión.');
         return;
       }
-      onDone(data.user.displayName);
+      onDone(data.user);
     } catch {
       setMessage('No se puede conectar con el servicio. Inténtalo de nuevo.');
     } finally {
@@ -608,12 +624,14 @@ type LiveGame = {
   predictionCount: number;
 };
 function LiveOrganizationDashboard({
+  openAdmin,
   selectOrganization,
   createGame,
   joinGame,
   manageGame,
   results,
 }: {
+  openAdmin?: () => void;
   selectOrganization: (id: string, name: string) => void;
   createGame: (id: string, name: string) => void;
   joinGame: (game: LiveGame) => void;
@@ -704,18 +722,28 @@ function LiveOrganizationDashboard({
         <div className="flex items-center gap-2 text-xs font-bold tracking-[.15em]">
           <MoonStar className="size-4 text-[#d9ae5f]" /> QUINIELA CLOCKTOWER
         </div>
-        <button
-          onClick={() =>
-            fetch('/api/auth', {
-              method: 'POST',
-              headers: { 'content-type': 'application/json' },
-              body: JSON.stringify({ action: 'logout' }),
-            }).then(() => location.reload())
-          }
-          className="text-xs text-zinc-500"
-        >
-          Cerrar sesión
-        </button>
+        <div className="flex items-center gap-4">
+          {openAdmin && (
+            <button
+              onClick={openAdmin}
+              className="flex items-center gap-1 text-xs font-bold text-[#d9ae5f]"
+            >
+              <Crown className="size-4" /> Administrar
+            </button>
+          )}
+          <button
+            onClick={() =>
+              fetch('/api/auth', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ action: 'logout' }),
+              }).then(() => location.reload())
+            }
+            className="text-xs text-zinc-500"
+          >
+            Cerrar sesión
+          </button>
+        </div>
       </header>
       {organizations.length === 0 ? (
         <div className="mt-16 rounded-2xl border bg-white/[.025] p-6 text-center">
@@ -784,7 +812,8 @@ function LiveOrganizationDashboard({
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="flex items-center gap-2 text-sm font-bold">
-                    <UserPlus className="size-4 text-[#d9ae5f]" /> Invitar miembros
+                    <UserPlus className="size-4 text-[#d9ae5f]" /> Invitar
+                    miembros
                   </p>
                   <p className="mt-1 text-xs text-zinc-500">
                     {invite
