@@ -25,13 +25,22 @@ class PreparedStatement {
     return (rows[0] as T | undefined) ?? null;
   }
   async run() {
-    await queryRows(postgresSql(this.source), this.values);
+    try {
+      await queryRows(postgresSql(this.source), this.values);
+    } catch (error) {
+      throw new Error(`Error al ejecutar la consulta: ${this.source}`, {
+        cause: error,
+      });
+    }
     return { success: true };
   }
 }
 
 let sqlClient: ReturnType<typeof neon> | null = null;
-let localClient: Promise<import('@electric-sql/pglite').PGlite> | null = null;
+const developmentDatabase = globalThis as typeof globalThis & {
+  quinielaPglite?: Promise<import('@electric-sql/pglite').PGlite>;
+  quinielaDatabaseInitialization?: Promise<void>;
+};
 async function queryRows(source: string, values: unknown[]) {
   const databaseUrl = process.env.DATABASE_URL;
   if (databaseUrl) {
@@ -42,10 +51,12 @@ async function queryRows(source: string, values: unknown[]) {
     throw new Error(
       'Falta DATABASE_URL. Conecta una base de datos Postgres al proyecto de Vercel.',
     );
-  localClient ??= import('@electric-sql/pglite').then(
+  developmentDatabase.quinielaPglite ??= import('@electric-sql/pglite').then(
     ({ PGlite }) => new PGlite(process.env.PGLITE_DATA_DIR ?? '.pglite'),
   );
-  const result = await (await localClient).query(source, values);
+  const result = await (
+    await developmentDatabase.quinielaPglite
+  ).query(source, values);
   return result.rows as Record<string, unknown>[];
 }
 
@@ -59,9 +70,8 @@ const store = {
 };
 export const db = () => store;
 
-let initialization: Promise<void> | null = null;
 export async function ensureDatabase() {
-  initialization ??= (async () => {
+  developmentDatabase.quinielaDatabaseInitialization ??= (async () => {
     const d = db();
     await d.batch([
       d.prepare(
@@ -72,6 +82,9 @@ export async function ensureDatabase() {
       ),
       d.prepare(
         'CREATE TABLE IF NOT EXISTS organizations (id TEXT PRIMARY KEY, name TEXT NOT NULL, slug TEXT NOT NULL UNIQUE, created_by TEXT NOT NULL, created_at BIGINT NOT NULL, FOREIGN KEY(created_by) REFERENCES users(id))',
+      ),
+      d.prepare(
+        "CREATE TABLE IF NOT EXISTS organization_seasons (id TEXT PRIMARY KEY, organization_id TEXT NOT NULL, name TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'ACTIVE', starts_at BIGINT NOT NULL, ends_at BIGINT, created_by TEXT NOT NULL, created_at BIGINT NOT NULL, UNIQUE(organization_id,name), FOREIGN KEY(organization_id) REFERENCES organizations(id), FOREIGN KEY(created_by) REFERENCES users(id))",
       ),
       d.prepare(
         "CREATE TABLE IF NOT EXISTS organization_members (id TEXT PRIMARY KEY, organization_id TEXT NOT NULL, user_id TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'MEMBER', joined_at BIGINT NOT NULL, UNIQUE(organization_id,user_id), FOREIGN KEY(organization_id) REFERENCES organizations(id), FOREIGN KEY(user_id) REFERENCES users(id))",
@@ -95,6 +108,9 @@ export async function ensureDatabase() {
         'CREATE INDEX IF NOT EXISTS idx_app_games_organization ON app_games(organization_id)',
       ),
       d.prepare(
+        'CREATE INDEX IF NOT EXISTS idx_seasons_organization ON organization_seasons(organization_id,created_at DESC)',
+      ),
+      d.prepare(
         'CREATE INDEX IF NOT EXISTS idx_invites_organization_created ON organization_invites(organization_id,created_at DESC)',
       ),
       d.prepare(
@@ -104,6 +120,49 @@ export async function ensureDatabase() {
         'CREATE INDEX IF NOT EXISTS idx_admin_audit_created ON admin_audit_log(created_at DESC)',
       ),
     ]);
+    await d
+      .prepare('ALTER TABLE app_games ADD COLUMN IF NOT EXISTS season_id TEXT')
+      .run();
+    const organizations = await d
+      .prepare(
+        'SELECT id,created_by AS createdBy,created_at AS createdAt FROM organizations',
+      )
+      .all<{ id: string; createdBy: string; createdAt: number | string }>();
+    for (const organization of organizations.results) {
+      let season = await d
+        .prepare(
+          "SELECT id FROM organization_seasons WHERE organization_id=? ORDER BY CASE WHEN status='ACTIVE' THEN 0 ELSE 1 END,created_at DESC LIMIT 1",
+        )
+        .bind(organization.id)
+        .first<{ id: string }>();
+      if (!season) {
+        season = { id: crypto.randomUUID() };
+        await d
+          .prepare(
+            "INSERT INTO organization_seasons (id,organization_id,name,status,starts_at,created_by,created_at) VALUES (?,?,?,'ACTIVE',?,?,?)",
+          )
+          .bind(
+            season.id,
+            organization.id,
+            'Temporada inicial',
+            organization.createdAt,
+            organization.createdBy,
+            organization.createdAt,
+          )
+          .run();
+      }
+      await d
+        .prepare(
+          'UPDATE app_games SET season_id=? WHERE organization_id=? AND season_id IS NULL',
+        )
+        .bind(season.id, organization.id)
+        .run();
+    }
+    await d
+      .prepare(
+        'CREATE INDEX IF NOT EXISTS idx_app_games_season ON app_games(season_id,created_at DESC)',
+      )
+      .run();
   })();
-  return initialization;
+  return developmentDatabase.quinielaDatabaseInitialization;
 }

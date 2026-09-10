@@ -174,6 +174,21 @@ export async function POST(request: Request) {
         },
         { status: 409 },
       );
+    if (
+      await db()
+        .prepare(
+          'SELECT id FROM organization_seasons WHERE created_by=? LIMIT 1',
+        )
+        .bind(body.userId)
+        .first()
+    )
+      return Response.json(
+        {
+          error:
+            'Este usuario creó temporadas. Conserva su cuenta para mantener el historial.',
+        },
+        { status: 409 },
+      );
     await db().batch([
       db()
         .prepare('DELETE FROM app_predictions WHERE user_id=?')
@@ -198,6 +213,8 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     const id = crypto.randomUUID();
+    const seasonId = crypto.randomUUID();
+    const now = Date.now();
     const slug = `${name
       .toLowerCase()
       .normalize('NFD')
@@ -209,12 +226,17 @@ export async function POST(request: Request) {
         .prepare(
           'INSERT INTO organizations (id,name,slug,created_by,created_at) VALUES (?,?,?,?,?)',
         )
-        .bind(id, name, slug, actor.id, Date.now()),
+        .bind(id, name, slug, actor.id, now),
       db()
         .prepare(
           "INSERT INTO organization_members (id,organization_id,user_id,role,joined_at) VALUES (?,?,?,'ADMIN',?)",
         )
-        .bind(crypto.randomUUID(), id, actor.id, Date.now()),
+        .bind(crypto.randomUUID(), id, actor.id, now),
+      db()
+        .prepare(
+          "INSERT INTO organization_seasons (id,organization_id,name,status,starts_at,created_by,created_at) VALUES (?,?,?,'ACTIVE',?,?,?)",
+        )
+        .bind(seasonId, id, 'Temporada 1', now, actor.id, now),
     ]);
     await audit(actor.id, body.action, 'organization', id, { name });
     return Response.json({ ok: true });
@@ -243,6 +265,9 @@ export async function POST(request: Request) {
         .bind(body.organizationId),
       db()
         .prepare('DELETE FROM app_games WHERE organization_id=?')
+        .bind(body.organizationId),
+      db()
+        .prepare('DELETE FROM organization_seasons WHERE organization_id=?')
         .bind(body.organizationId),
       db()
         .prepare('DELETE FROM organization_invites WHERE organization_id=?')

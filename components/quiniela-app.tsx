@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import {
   Building2,
+  CalendarDays,
   Check,
   ChevronLeft,
   Clipboard,
@@ -113,6 +114,7 @@ export function QuinielaApp() {
   const [creating, setCreating] = useState(false);
   const [org, setOrg] = useState('');
   const [organizationId, setOrganizationId] = useState('');
+  const [seasonId, setSeasonId] = useState('');
   const [gameId, setGameId] = useState('');
   const [superAdmin, setSuperAdmin] = useState(false);
   const sessionUserId = useRef('');
@@ -205,8 +207,9 @@ export function QuinielaApp() {
             setOrganizationId(id);
             setOrg(orgName);
           }}
-          createGame={(id, orgName) => {
+          createGame={(id, orgName, selectedSeasonId) => {
             setOrganizationId(id);
+            setSeasonId(selectedSeasonId);
             setOrg(orgName);
             setView('create');
           }}
@@ -280,6 +283,7 @@ export function QuinielaApp() {
                 headers: { 'content-type': 'application/json' },
                 body: JSON.stringify({
                   organizationId,
+                  seasonId,
                   name,
                   script,
                   playerCount: players,
@@ -676,11 +680,27 @@ type LiveGame = {
   code: string;
   name: string;
   organizationId: string;
+  seasonId: string;
+  seasonName: string;
   scriptName: string;
   charactersJson: string;
   playerCount: number;
   status: 'OPEN' | 'LOCKED' | 'FINISHED';
   predictionCount: number;
+};
+type LiveSeason = {
+  id: string;
+  name: string;
+  status: 'ACTIVE' | 'CLOSED';
+  startsAt: number;
+  endsAt: number | null;
+  gameCount: number;
+};
+type SeasonStanding = {
+  userId: string;
+  displayName: string;
+  points: number;
+  gamesPlayed: number;
 };
 function LiveOrganizationDashboard({
   signedInAs,
@@ -694,13 +714,17 @@ function LiveOrganizationDashboard({
   signedInAs: string;
   openAdmin?: () => void;
   selectOrganization: (id: string, name: string) => void;
-  createGame: (id: string, name: string) => void;
+  createGame: (id: string, name: string, seasonId: string) => void;
   joinGame: (game: LiveGame) => void;
   manageGame: (game: LiveGame) => void;
   results: (game: LiveGame) => void;
 }) {
   const [organizations, setOrganizations] = useState<LiveOrganization[]>([]);
   const [games, setGames] = useState<LiveGame[]>([]);
+  const [seasons, setSeasons] = useState<LiveSeason[]>([]);
+  const [selectedSeasonId, setSelectedSeasonId] = useState('');
+  const [standings, setStandings] = useState<SeasonStanding[]>([]);
+  const [newSeason, setNewSeason] = useState('');
   const [active, setActive] = useState('');
   const [newOrg, setNewOrg] = useState('');
   const [joinCode, setJoinCode] = useState('');
@@ -728,6 +752,23 @@ function LiveOrganizationDashboard({
     void load();
   }, []);
   const current = organizations.find((o) => o.id === active);
+  const activeSeason = seasons.find((season) => season.status === 'ACTIVE');
+  const loadSeasons = async (organizationId: string, seasonId?: string) => {
+    const query = new URLSearchParams({ organizationId });
+    if (seasonId) query.set('seasonId', seasonId);
+    const response = await apiFetch(`/api/seasons?${query}`);
+    const data = await response.json();
+    if (!response.ok) {
+      setMessage(data.error);
+      return;
+    }
+    setSeasons(data.seasons);
+    setSelectedSeasonId(data.selectedSeasonId ?? '');
+    setStandings(data.standings);
+  };
+  useEffect(() => {
+    if (active) void loadSeasons(active);
+  }, [active]);
   useEffect(() => {
     setInvite('');
     if (!active || current?.role !== 'ADMIN') return;
@@ -778,6 +819,21 @@ function LiveOrganizationDashboard({
     setJoinCode('');
     setMessage('Te has unido a la organización.');
     await load();
+  };
+  const createSeason = async () => {
+    const response = await apiFetch('/api/seasons', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ organizationId: active, name: newSeason }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      setMessage(data.error);
+      return;
+    }
+    setNewSeason('');
+    setMessage(`La temporada «${data.season.name}» ya está activa.`);
+    await loadSeasons(active, data.season.id);
   };
   return (
     <section className="mx-auto max-w-2xl px-5 py-8">
@@ -876,6 +932,89 @@ function LiveOrganizationDashboard({
               </p>
             </div>
           </div>
+          <div className="mt-6 rounded-2xl border bg-white/[.025] p-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="flex items-center gap-2 text-sm font-bold">
+                  <CalendarDays className="size-4 text-[#d9ae5f]" /> Temporada
+                </p>
+                <p className="mt-1 text-xs text-zinc-500">
+                  Las quinielas finalizadas acumulan puntos en su temporada.
+                </p>
+              </div>
+              {activeSeason && (
+                <span className="rounded-full bg-emerald-400/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+                  Activa: {activeSeason.name}
+                </span>
+              )}
+            </div>
+            {seasons.length > 0 && (
+              <select
+                value={selectedSeasonId}
+                onChange={(event) =>
+                  void loadSeasons(active, event.target.value)
+                }
+                className="mt-4 h-11 w-full rounded-lg border border-white/10 bg-[#19161f] px-3 text-sm font-semibold outline-none"
+              >
+                {seasons.map((season) => (
+                  <option key={season.id} value={season.id}>
+                    {season.name} ·{' '}
+                    {season.status === 'ACTIVE' ? 'Activa' : 'Cerrada'} ·{' '}
+                    {season.gameCount} quinielas
+                  </option>
+                ))}
+              </select>
+            )}
+            {current?.role === 'ADMIN' && (
+              <div className="mt-3 flex gap-2">
+                <Input
+                  value={newSeason}
+                  onChange={(event) => setNewSeason(event.target.value)}
+                  placeholder="Nueva temporada"
+                  className="h-11 bg-white/[.03]"
+                />
+                <Button
+                  variant="outline"
+                  disabled={newSeason.trim().length < 3}
+                  onClick={createSeason}
+                >
+                  Crear
+                </Button>
+              </div>
+            )}
+          </div>
+          <div className="mt-5 rounded-2xl border bg-white/[.025] p-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-bold uppercase tracking-[.18em] text-[#d9ae5f]">
+                Clasificación de temporada
+              </h2>
+              <small className="text-zinc-600">Puntos acumulados</small>
+            </div>
+            <div className="mt-4 space-y-2">
+              {standings.map((entry, index) => (
+                <div
+                  key={entry.userId}
+                  className="flex items-center gap-3 rounded-lg border border-white/[.06] bg-black/10 px-3 py-2.5"
+                >
+                  <span className="display grid size-7 place-items-center rounded-full bg-white/5 font-bold">
+                    {index + 1}
+                  </span>
+                  <b className="min-w-0 flex-1 truncate text-sm">
+                    {entry.displayName}
+                  </b>
+                  <small className="text-zinc-500">
+                    {entry.gamesPlayed} partidas
+                  </small>
+                  <strong className="text-[#d9ae5f]">{entry.points} pts</strong>
+                </div>
+              ))}
+              {standings.length === 0 && (
+                <p className="py-2 text-center text-sm text-zinc-600">
+                  La clasificación aparecerá al finalizar la primera quiniela.
+                </p>
+              )}
+            </div>
+          </div>
           {current?.role === 'ADMIN' && (
             <div className="mt-5 rounded-2xl border border-[#d9ae5f]/25 bg-[#d9ae5f]/5 p-5">
               <div className="flex items-center justify-between gap-3">
@@ -916,7 +1055,11 @@ function LiveOrganizationDashboard({
           <div className="mt-8 grid grid-cols-2 gap-3">
             {current?.role === 'ADMIN' && (
               <Button
-                onClick={() => createGame(current.id, current.name)}
+                disabled={!activeSeason}
+                onClick={() =>
+                  activeSeason &&
+                  createGame(current.id, current.name, activeSeason.id)
+                }
                 className="h-13 bg-[#d9ae5f] font-extrabold text-[#17120a]"
               >
                 <Plus /> Crear quiniela
@@ -939,7 +1082,11 @@ function LiveOrganizationDashboard({
           </h2>
           <div className="mt-4 space-y-3">
             {games
-              .filter((g) => g.organizationId === active)
+              .filter(
+                (g) =>
+                  g.organizationId === active &&
+                  g.seasonId === selectedSeasonId,
+              )
               .map((game) => (
                 <div
                   key={game.id}
@@ -958,7 +1105,8 @@ function LiveOrganizationDashboard({
                         {game.name}
                       </h3>
                       <p className="mt-1 text-xs text-zinc-500">
-                        {game.scriptName} · {game.playerCount} jugadores
+                        {game.scriptName} · {game.playerCount} jugadores ·{' '}
+                        {game.seasonName}
                       </p>
                     </div>
                     <span className="h-fit rounded-full bg-[#d9ae5f]/10 px-3 py-1 text-xs text-[#d9ae5f]">
@@ -1000,7 +1148,10 @@ function LiveOrganizationDashboard({
                   </div>
                 </div>
               ))}
-            {games.filter((g) => g.organizationId === active).length === 0 && (
+            {games.filter(
+              (g) =>
+                g.organizationId === active && g.seasonId === selectedSeasonId,
+            ).length === 0 && (
               <p className="rounded-xl border border-dashed p-5 text-center text-sm text-zinc-600">
                 Todavía no hay quinielas.
               </p>
