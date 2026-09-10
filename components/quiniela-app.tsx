@@ -70,23 +70,23 @@ const roleAppearance: Record<
 > = {
   TOWNSFOLK: {
     label: 'Aldeano',
-    card: 'border-sky-400/25 bg-sky-400/10',
-    badge: 'bg-sky-400/15 text-sky-300',
+    card: 'border-[#43a047]/45 bg-[#2e7d32]/25',
+    badge: 'bg-[#43a047]/25 text-[#a5d6a7]',
   },
   OUTSIDER: {
     label: 'Forastero',
-    card: 'border-indigo-400/25 bg-indigo-400/10',
-    badge: 'bg-indigo-400/15 text-indigo-300',
+    card: 'border-[#2e7d32]/55 bg-[#1b5e20]/35',
+    badge: 'bg-[#2e7d32]/30 text-[#81c784]',
   },
   MINION: {
     label: 'Esbirro',
-    card: 'border-orange-400/25 bg-orange-400/10',
-    badge: 'bg-orange-400/15 text-orange-300',
+    card: 'border-[#e53935]/45 bg-[#c62828]/25',
+    badge: 'bg-[#e53935]/25 text-[#ef9a9a]',
   },
   DEMON: {
     label: 'Demonio',
-    card: 'border-red-500/30 bg-red-500/10',
-    badge: 'bg-red-500/15 text-red-300',
+    card: 'border-[#b71c1c]/60 bg-[#7f0000]/40',
+    badge: 'bg-[#b71c1c]/35 text-[#ffcdd2]',
   },
 };
 
@@ -1684,26 +1684,50 @@ function Results({
             Nadie presentó una apuesta para esta quiniela.
           </p>
         )}
-        {ranking.map((entry, i) => (
-          <button
-            key={entry.userId}
-            onClick={() => setRevealUserId(entry.userId)}
-            className={`flex w-full items-center gap-4 rounded-xl border p-4 text-left ${i === 0 ? 'border-[#d9ae5f]/35 bg-[#d9ae5f]/8' : 'bg-white/[.025]'}`}
-          >
-            <span
-              className={`display grid size-10 place-items-center rounded-full text-xl font-bold ${i === 0 ? 'bg-[#d9ae5f] text-[#17120a]' : 'bg-white/5'}`}
+        {ranking.map((entry, i) => {
+          const incorrect = entry.characterIds.filter(
+            (id) => !actual.includes(id),
+          ).length;
+          const missed = actual.filter(
+            (id) => !entry.characterIds.includes(id),
+          ).length;
+          return (
+            <button
+              key={entry.userId}
+              onClick={() => setRevealUserId(entry.userId)}
+              className={`flex w-full items-center gap-3 rounded-xl border p-4 text-left ${i === 0 ? 'border-[#d9ae5f]/35 bg-[#d9ae5f]/8' : 'bg-white/[.025]'}`}
             >
-              {i === 0 ? <Crown className="size-5" /> : i + 1}
-            </span>
-            <b className="flex-1">{entry.displayName}</b>
-            <span className="display text-xl font-bold">
-              {entry.score}{' '}
-              <small className="font-sans text-xs font-normal text-zinc-500">
-                puntos
-              </small>
-            </span>
-          </button>
-        ))}
+              <span
+                className={`display grid size-10 shrink-0 place-items-center rounded-full text-xl font-bold ${i === 0 ? 'bg-[#d9ae5f] text-[#17120a]' : 'bg-white/5'}`}
+              >
+                {i === 0 ? <Crown className="size-5" /> : i + 1}
+              </span>
+              <span className="min-w-0 flex-1">
+                <b className="block truncate">{entry.displayName}</b>
+                <span className="mt-1.5 flex flex-wrap gap-1.5 text-[10px] font-bold uppercase tracking-wide">
+                  <span className="rounded-full bg-emerald-400/15 px-2 py-1 text-emerald-300">
+                    ✓ {entry.score} acertados
+                  </span>
+                  <span className="rounded-full bg-red-400/15 px-2 py-1 text-red-300">
+                    ✕ {incorrect} incorrectos
+                  </span>
+                  <span className="rounded-full bg-amber-300/15 px-2 py-1 text-amber-200">
+                    ✕ {missed} sin marcar
+                  </span>
+                </span>
+                <small className="mt-1.5 block text-zinc-500">
+                  Pulsa para ver cada personaje
+                </small>
+              </span>
+              <span className="display shrink-0 text-xl font-bold">
+                {entry.score}{' '}
+                <small className="block font-sans text-[10px] font-normal text-zinc-500">
+                  puntos
+                </small>
+              </span>
+            </button>
+          );
+        })}
       </div>
       <h2 className="mt-12 text-xs font-extrabold uppercase tracking-[.2em] text-[#d9ae5f]">
         Setup de la partida
