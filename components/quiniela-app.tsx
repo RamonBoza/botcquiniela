@@ -1685,12 +1685,6 @@ function Results({
           </p>
         )}
         {ranking.map((entry, i) => {
-          const incorrect = entry.characterIds.filter(
-            (id) => !actual.includes(id),
-          ).length;
-          const missed = actual.filter(
-            (id) => !entry.characterIds.includes(id),
-          ).length;
           return (
             <button
               key={entry.userId}
@@ -1704,19 +1698,8 @@ function Results({
               </span>
               <span className="min-w-0 flex-1">
                 <b className="block truncate">{entry.displayName}</b>
-                <span className="mt-1.5 flex flex-wrap gap-1.5 text-[10px] font-bold uppercase tracking-wide">
-                  <span className="rounded-full bg-emerald-400/15 px-2 py-1 text-emerald-300">
-                    ✓ {entry.score} acertados
-                  </span>
-                  <span className="rounded-full bg-red-400/15 px-2 py-1 text-red-300">
-                    ✕ {incorrect} incorrectos
-                  </span>
-                  <span className="rounded-full bg-amber-300/15 px-2 py-1 text-amber-200">
-                    ✕ {missed} sin marcar
-                  </span>
-                </span>
-                <small className="mt-1.5 block text-zinc-500">
-                  Pulsa para ver cada personaje
+                <small className="mt-1 block text-zinc-500">
+                  Ver personajes acertados y fallados
                 </small>
               </span>
               <span className="display shrink-0 text-xl font-bold">
@@ -1807,13 +1790,12 @@ function Results({
                       className={`flex items-center gap-3 rounded-lg border p-3 ${appearance.card}`}
                     >
                       <span
-                        className={`grid size-7 shrink-0 place-items-center rounded-full ${guessed && was ? 'bg-emerald-400/20 text-emerald-300' : guessed ? 'bg-red-400/20 text-red-300' : 'bg-amber-300/20 text-amber-200'}`}
+                        aria-label={guessed && was ? 'Acertado' : 'Fallado'}
+                        className={`grid size-9 shrink-0 place-items-center rounded-full border-2 text-xl font-black ${guessed && was ? 'border-emerald-300 bg-emerald-400/25 text-emerald-200' : guessed ? 'border-red-300 bg-red-400/25 text-red-200' : 'border-amber-200 bg-amber-300/25 text-amber-100'}`}
                       >
-                        {guessed && was ? (
-                          <Check className="size-3.5" />
-                        ) : (
-                          <X className="size-3.5" />
-                        )}
+                        <span aria-hidden="true">
+                          {guessed && was ? '✓' : '✕'}
+                        </span>
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm font-semibold">
@@ -1826,19 +1808,19 @@ function Results({
                         </small>
                       </span>
                       <small
-                        className={
+                        className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide ${
                           guessed && was
-                            ? 'text-emerald-300'
+                            ? 'bg-emerald-400/20 text-emerald-200'
                             : guessed
-                              ? 'text-red-300'
-                              : 'text-amber-200'
-                        }
+                              ? 'bg-red-400/20 text-red-200'
+                              : 'bg-amber-300/20 text-amber-100'
+                        }`}
                       >
                         {guessed && was
-                          ? 'Acertado'
+                          ? '✓ Acertado'
                           : guessed
-                            ? 'No estaba'
-                            : 'No predicho'}
+                            ? '✕ Fallo'
+                            : '✕ No predicho'}
                       </small>
                     </div>
                   );
