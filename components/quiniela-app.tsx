@@ -26,6 +26,11 @@ import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { AdminPanel } from '@/components/admin-panel';
 import {
+  apiFetch,
+  clearDevelopmentSession,
+  saveDevelopmentSession,
+} from '@/lib/client-api';
+import {
   BotcJsonScriptImporter,
   troubleBrewing,
   type ImportedCharacter,
@@ -84,7 +89,7 @@ export function QuinielaApp() {
   const sessionUserId = useRef('');
   const fileRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
-    fetch('/api/auth')
+    apiFetch('/api/auth')
       .then((r) => r.json())
       .then((data) => {
         if (data.user) {
@@ -100,7 +105,7 @@ export function QuinielaApp() {
     const verifySession = () => {
       if (document.visibilityState !== 'visible' || !sessionUserId.current)
         return;
-      fetch('/api/auth')
+      apiFetch('/api/auth')
         .then((response) => response.json())
         .then((data) => {
           if (data.user?.id !== sessionUserId.current) location.reload();
@@ -187,7 +192,7 @@ export function QuinielaApp() {
               source: 'BOTC_JSON',
               characters: JSON.parse(game.charactersJson),
             });
-            fetch(`/api/games/prediction?gameId=${game.id}`)
+            apiFetch(`/api/games/prediction?gameId=${game.id}`)
               .then((r) => r.json())
               .then((data) => setSelected(data.characterIds ?? []));
             setView('play');
@@ -241,7 +246,7 @@ export function QuinielaApp() {
             setCreating(true);
             setError('');
             try {
-              const response = await fetch('/api/games', {
+              const response = await apiFetch('/api/games', {
                 method: 'POST',
                 headers: { 'content-type': 'application/json' },
                 body: JSON.stringify({
@@ -281,7 +286,7 @@ export function QuinielaApp() {
           setSelected={setSelected}
           saved={saved}
           save={async () => {
-            const response = await fetch('/api/games/prediction', {
+            const response = await apiFetch('/api/games/prediction', {
               method: 'POST',
               headers: { 'content-type': 'application/json' },
               body: JSON.stringify({ gameId, characterIds: selected }),
@@ -298,7 +303,7 @@ export function QuinielaApp() {
           status={status}
           setStatus={async (next) => {
             if (next === 'LOCKED') {
-              const response = await fetch('/api/games/manage', {
+              const response = await apiFetch('/api/games/manage', {
                 method: 'POST',
                 headers: { 'content-type': 'application/json' },
                 body: JSON.stringify({ gameId, action: 'lock' }),
@@ -310,7 +315,7 @@ export function QuinielaApp() {
           actual={actual}
           setActual={setActual}
           finish={async () => {
-            const response = await fetch('/api/games/manage', {
+            const response = await apiFetch('/api/games/manage', {
               method: 'POST',
               headers: { 'content-type': 'application/json' },
               body: JSON.stringify({
@@ -391,7 +396,7 @@ function AccountAccess({
     setBusy(true);
     setMessage('');
     try {
-      const response = await fetch('/api/auth', {
+      const response = await apiFetch('/api/auth', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -408,6 +413,7 @@ function AccountAccess({
         setMessage(data.error ?? 'No se ha podido iniciar la sesión.');
         return;
       }
+      saveDevelopmentSession(data.sessionToken);
       onDone(data.user);
     } catch {
       setMessage('No se puede conectar con el servicio. Inténtalo de nuevo.');
@@ -673,8 +679,8 @@ function LiveOrganizationDashboard({
   const [message, setMessage] = useState('');
   const load = async () => {
     const [orgResponse, gameResponse] = await Promise.all([
-      fetch('/api/organizations'),
-      fetch('/api/games'),
+      apiFetch('/api/organizations'),
+      apiFetch('/api/games'),
     ]);
     if (orgResponse.ok) {
       const data = await orgResponse.json();
@@ -696,13 +702,13 @@ function LiveOrganizationDashboard({
   useEffect(() => {
     setInvite('');
     if (!active || current?.role !== 'ADMIN') return;
-    fetch(`/api/organizations/invite?organizationId=${active}`)
+    apiFetch(`/api/organizations/invite?organizationId=${active}`)
       .then((response) => (response.ok ? response.json() : { code: null }))
       .then((data) => setInvite(data.code ?? ''))
       .catch(() => undefined);
   }, [active, current?.role]);
   const createOrg = async () => {
-    const response = await fetch('/api/organizations', {
+    const response = await apiFetch('/api/organizations', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ name: newOrg }),
@@ -718,7 +724,7 @@ function LiveOrganizationDashboard({
     selectOrganization(data.organization.id, data.organization.name);
   };
   const makeInvite = async () => {
-    const response = await fetch('/api/organizations/invite', {
+    const response = await apiFetch('/api/organizations/invite', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ organizationId: active }),
@@ -730,7 +736,7 @@ function LiveOrganizationDashboard({
     } else setMessage(data.error);
   };
   const join = async () => {
-    const response = await fetch('/api/organizations/join', {
+    const response = await apiFetch('/api/organizations/join', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ code: joinCode }),
@@ -764,11 +770,14 @@ function LiveOrganizationDashboard({
           )}
           <button
             onClick={() =>
-              fetch('/api/auth', {
+              apiFetch('/api/auth', {
                 method: 'POST',
                 headers: { 'content-type': 'application/json' },
                 body: JSON.stringify({ action: 'logout' }),
-              }).then(() => location.reload())
+              }).then(() => {
+                clearDevelopmentSession();
+                location.reload();
+              })
             }
             className="text-xs text-zinc-500"
           >

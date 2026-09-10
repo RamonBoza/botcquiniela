@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { apiFetch } from '@/lib/client-api';
 
 type AdminUser = {
   id: string;
@@ -83,7 +84,7 @@ export function AdminPanel() {
   const [newOrganization, setNewOrganization] = useState('');
   const [memberNames, setMemberNames] = useState<Record<string, string>>({});
   const load = useCallback(async () => {
-    const response = await fetch('/api/admin');
+    const response = await apiFetch('/api/admin');
     const body = await response
       .json()
       .catch(() => ({ error: 'No se ha podido cargar la administración.' }));
@@ -101,7 +102,7 @@ export function AdminPanel() {
     setBusy(true);
     setMessage('');
     try {
-      const response = await fetch('/api/admin', {
+      const response = await apiFetch('/api/admin', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(payload),

@@ -65,9 +65,19 @@ export async function createSession(userId: string) {
 }
 export async function currentUser(request: Request) {
   await ensureDatabase();
-  const token = request.headers
-    .get('cookie')
-    ?.match(/(?:^|; )qc_session=([^;]+)/)?.[1];
+  const developmentTabSession =
+    process.env.NODE_ENV !== 'production' &&
+    request.headers.get('x-qc-tab-session') === '1';
+  const bearerToken = developmentTabSession
+    ? request.headers.get('authorization')?.match(/^Bearer (.+)$/i)?.[1]
+    : undefined;
+  const token =
+    bearerToken ??
+    (developmentTabSession
+      ? undefined
+      : request.headers
+          .get('cookie')
+          ?.match(/(?:^|; )qc_session=([^;]+)/)?.[1]);
   if (!token) return null;
   return await db()
     .prepare(

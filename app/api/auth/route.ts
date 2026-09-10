@@ -91,7 +91,10 @@ export async function POST(request: Request) {
   }
   const token = await createSession(user.id);
   return Response.json(
-    { user: { ...user, isSuperAdmin: isSuperAdmin(user) } },
+    {
+      user: { ...user, isSuperAdmin: isSuperAdmin(user) },
+      sessionToken: process.env.NODE_ENV !== 'production' ? token : undefined,
+    },
     { headers: { 'set-cookie': sessionCookie(token) } },
   );
 }
