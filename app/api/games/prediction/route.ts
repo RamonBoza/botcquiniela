@@ -1,5 +1,88 @@
 import { requireUser } from '@/lib/server-auth';
 import { db } from '@/lib/server-store';
 
-export async function GET(request:Request){const user=await requireUser(request);const gameId=new URL(request.url).searchParams.get('gameId');const membership=await db().prepare('SELECT g.status,p.character_ids_json AS characterIdsJson FROM app_games g JOIN organization_members m ON m.organization_id=g.organization_id AND m.user_id=? LEFT JOIN app_predictions p ON p.game_id=g.id AND p.user_id=? WHERE g.id=?').bind(user.id,user.id,gameId).first<{status:string;characterIdsJson:string|null}>();if(!membership)return Response.json({error:'No perteneces a esta organización.'},{status:403});return Response.json({characterIds:membership.characterIdsJson?JSON.parse(membership.characterIdsJson):[],status:membership.status})}
-export async function POST(request:Request){const user=await requireUser(request);const body=await request.json() as {gameId?:string;characterIds?:string[]};const game=await db().prepare("SELECT g.status,g.characters_json AS charactersJson FROM app_games g JOIN organization_members m ON m.organization_id=g.organization_id WHERE g.id=? AND m.user_id=?").bind(body.gameId,user.id).first<{status:string;charactersJson:string}>();if(!game)return Response.json({error:'No perteneces a esta organización.'},{status:403});if(game.status!=='OPEN')return Response.json({error:'La quiniela ya está cerrada.'},{status:409});const allowed=new Set((JSON.parse(game.charactersJson) as {id:string}[]).map(c=>c.id));if(!Array.isArray(body.characterIds)||body.characterIds.some(id=>!allowed.has(id)))return Response.json({error:'La selección contiene personajes no válidos.'},{status:400});const now=Date.now();await db().prepare('INSERT INTO app_predictions (id,game_id,user_id,character_ids_json,submitted_at,updated_at) VALUES (?,?,?,?,?,?) ON CONFLICT(game_id,user_id) DO UPDATE SET character_ids_json=excluded.character_ids_json,updated_at=excluded.updated_at').bind(crypto.randomUUID(),body.gameId,user.id,JSON.stringify(body.characterIds),now,now).run();return Response.json({ok:true,updatedAt:now})}
+export async function GET(request: Request) {
+  const user = await requireUser(request);
+  const gameId = new URL(request.url).searchParams.get('gameId');
+  const membership = await db()
+    .prepare(
+      'SELECT g.status,p.character_ids_json AS characterIdsJson FROM app_games g JOIN organization_members m ON m.organization_id=g.organization_id AND m.user_id=? LEFT JOIN app_predictions p ON p.game_id=g.id AND p.user_id=? WHERE g.id=?',
+    )
+    .bind(user.id, user.id, gameId)
+    .first<{ status: string; characterIdsJson: string | null }>();
+  if (!membership)
+    return Response.json(
+      { error: 'No perteneces a esta organización.' },
+      { status: 403 },
+    );
+  return Response.json({
+    characterIds: membership.characterIdsJson
+      ? JSON.parse(membership.characterIdsJson)
+      : [],
+    status: membership.status,
+  });
+}
+
+export async function POST(request: Request) {
+  const user = await requireUser(request);
+  const body = (await request.json()) as {
+    gameId?: string;
+    characterIds?: string[];
+  };
+  const game = await db()
+    .prepare(
+      'SELECT g.status,g.player_count AS playerCount,g.characters_json AS charactersJson FROM app_games g JOIN organization_members m ON m.organization_id=g.organization_id WHERE g.id=? AND m.user_id=?',
+    )
+    .bind(body.gameId, user.id)
+    .first<{ status: string; playerCount: number; charactersJson: string }>();
+  if (!game)
+    return Response.json(
+      { error: 'No perteneces a esta organización.' },
+      { status: 403 },
+    );
+  if (game.status !== 'OPEN')
+    return Response.json(
+      { error: 'La quiniela ya está cerrada.' },
+      { status: 409 },
+    );
+  if (!Array.isArray(body.characterIds))
+    return Response.json(
+      { error: 'La selección contiene personajes no válidos.' },
+      { status: 400 },
+    );
+  if (
+    body.characterIds.length > game.playerCount ||
+    new Set(body.characterIds).size !== body.characterIds.length
+  )
+    return Response.json(
+      {
+        error: `Puedes elegir como máximo ${game.playerCount} personajes diferentes.`,
+      },
+      { status: 400 },
+    );
+  const allowed = new Set(
+    (JSON.parse(game.charactersJson) as { id: string }[]).map(
+      (character) => character.id,
+    ),
+  );
+  if (body.characterIds.some((id) => !allowed.has(id)))
+    return Response.json(
+      { error: 'La selección contiene personajes no válidos.' },
+      { status: 400 },
+    );
+  const now = Date.now();
+  await db()
+    .prepare(
+      'INSERT INTO app_predictions (id,game_id,user_id,character_ids_json,submitted_at,updated_at) VALUES (?,?,?,?,?,?) ON CONFLICT(game_id,user_id) DO UPDATE SET character_ids_json=excluded.character_ids_json,updated_at=excluded.updated_at',
+    )
+    .bind(
+      crypto.randomUUID(),
+      body.gameId,
+      user.id,
+      JSON.stringify(body.characterIds),
+      now,
+      now,
+    )
+    .run();
+  return Response.json({ ok: true, updatedAt: now });
+}

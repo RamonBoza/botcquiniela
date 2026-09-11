@@ -1434,12 +1434,16 @@ function Selector(p: {
     [p.script, p.selected],
   );
   const standard = roleDistribution(p.playerCount);
-  const toggle = (id: string) =>
+  const selectionLimitReached =
+    p.mode === 'prediction' && p.selected.length >= p.playerCount;
+  const toggle = (id: string) => {
+    if (!p.selected.includes(id) && selectionLimitReached) return;
     p.setSelected(
       p.selected.includes(id)
         ? p.selected.filter((x) => x !== id)
         : [...p.selected, id],
     );
+  };
   return (
     <section className="pb-36">
       <div className="mx-auto max-w-5xl px-4 pt-8">
@@ -1469,6 +1473,11 @@ function Selector(p: {
             <p className="display mt-1 text-2xl font-bold">
               Has elegido {p.selected.length} de {p.playerCount}
             </p>
+            {selectionLimitReached && (
+              <p className="mt-1 text-xs font-semibold text-[#d9ae5f]">
+                Máximo alcanzado. Quita un personaje para elegir otro.
+              </p>
+            )}
           </div>
           <Sparkles className="mb-1 size-5 text-[#d9ae5f]" />
         </div>
@@ -1530,6 +1539,7 @@ function Selector(p: {
           script={p.script}
           selected={p.selected}
           toggle={toggle}
+          selectionLimitReached={selectionLimitReached}
         />
       </div>
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/8 bg-[#100e14]/92 p-4 backdrop-blur-xl">
@@ -1557,10 +1567,12 @@ function CharacterGrid({
   script,
   selected,
   toggle,
+  selectionLimitReached = false,
 }: {
   script: ImportedScript;
   selected: string[];
   toggle: (id: string) => void;
+  selectionLimitReached?: boolean;
 }) {
   return (
     <div className="mt-10 space-y-10">
@@ -1587,6 +1599,7 @@ function CharacterGrid({
                   label={group.singular}
                   color={group.color}
                   toggle={toggle}
+                  disabled={selectionLimitReached && !selected.includes(char.id)}
                 />
               ))}
             </div>
@@ -1602,18 +1615,21 @@ function CharacterCard({
   label,
   color,
   toggle,
+  disabled = false,
 }: {
   char: ImportedCharacter;
   active: boolean;
   label: string;
   color: string;
   toggle: (id: string) => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       data-selected={active}
       onClick={() => toggle(char.id)}
-      className="character-card min-h-28 rounded-xl border bg-[#19161f] px-3 py-4 text-center"
+      disabled={disabled}
+      className="character-card min-h-28 rounded-xl border bg-[#19161f] px-3 py-4 text-center disabled:cursor-not-allowed disabled:opacity-40"
       aria-pressed={active}
     >
       <span
