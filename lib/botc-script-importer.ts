@@ -4,10 +4,7 @@ export type CharacterType =
   | 'TOWNSFOLK'
   | 'OUTSIDER'
   | 'MINION'
-  | 'DEMON'
-  | 'TRAVELLER'
-  | 'FABLED'
-  | 'LORIC';
+  | 'DEMON';
 export type ImportedCharacter = { id: string; name: string; localizedName?: string; type: CharacterType };
 export type ImportedScript = { name: string; author?: string; characters: ImportedCharacter[]; source: 'BOTC_JSON' };
 
@@ -26,11 +23,9 @@ const teamMap: Record<string, CharacterType> = {
   outsider: 'OUTSIDER',
   minion: 'MINION',
   demon: 'DEMON',
-  traveller: 'TRAVELLER',
-  traveler: 'TRAVELLER',
-  fabled: 'FABLED',
-  loric: 'LORIC',
 };
+
+const nonPlayableTeams = new Set(['traveller', 'traveler', 'fabled', 'loric']);
 
 const officialCatalog: Record<string, { name: string; type: CharacterType }> =
   Object.fromEntries(
@@ -40,14 +35,26 @@ const officialCatalog: Record<string, { name: string; type: CharacterType }> =
     }),
   );
 
+const nonPlayableOfficialIds = new Set(
+  officialRoles
+    .filter((role) => nonPlayableTeams.has(role.team.toLowerCase()))
+    .map((role) => role.id.toLowerCase()),
+);
+
 export class BotcJsonScriptImporter implements ScriptImporter {
   async import(source: unknown): Promise<ImportedScript> {
     if (!Array.isArray(source)) throw new Error('El archivo debe contener una lista JSON de personajes.');
     const meta = source.find((item): item is { id:string; name?:string; author?:string } => typeof item === 'object' && item !== null && (item as {id?:string}).id === '_meta');
-    const entries = source.filter((item): item is ScriptCharacter =>
-      (typeof item === 'string' && Boolean(item.trim())) ||
-      (typeof item === 'object' && item !== null && typeof (item as { id?: unknown }).id === 'string' && (item as { id: string }).id !== '_meta'),
-    );
+    const entries = source
+      .filter((item): item is ScriptCharacter =>
+        (typeof item === 'string' && Boolean(item.trim())) ||
+        (typeof item === 'object' && item !== null && typeof (item as { id?: unknown }).id === 'string' && (item as { id: string }).id !== '_meta'),
+      )
+      .filter((entry) => {
+        const item = typeof entry === 'string' ? { id: entry } : entry;
+        return !nonPlayableOfficialIds.has(item.id.toLowerCase()) &&
+          !nonPlayableTeams.has(item.team?.toLowerCase() ?? '');
+      });
     const characters = entries.map((entry) => {
       const item = typeof entry === 'string' ? { id: entry } : entry;
       const local = catalog[item.id.toLowerCase()];
