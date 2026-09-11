@@ -1,0 +1,907 @@
+[
+  {
+    "id": "steward",
+    "name": "Steward",
+    "team": "townsfolk"
+  },
+  {
+    "id": "knight",
+    "name": "Knight",
+    "team": "townsfolk"
+  },
+  {
+    "id": "chef",
+    "name": "Chef",
+    "team": "townsfolk"
+  },
+  {
+    "id": "noble",
+    "name": "Noble",
+    "team": "townsfolk"
+  },
+  {
+    "id": "investigator",
+    "name": "Investigator",
+    "team": "townsfolk"
+  },
+  {
+    "id": "washerwoman",
+    "name": "Washerwoman",
+    "team": "townsfolk"
+  },
+  {
+    "id": "clockmaker",
+    "name": "Clockmaker",
+    "team": "townsfolk"
+  },
+  {
+    "id": "grandmother",
+    "name": "Grandmother",
+    "team": "townsfolk"
+  },
+  {
+    "id": "librarian",
+    "name": "Librarian",
+    "team": "townsfolk"
+  },
+  {
+    "id": "shugenja",
+    "name": "Shugenja",
+    "team": "townsfolk"
+  },
+  {
+    "id": "pixie",
+    "name": "Pixie",
+    "team": "townsfolk"
+  },
+  {
+    "id": "bountyhunter",
+    "name": "Bounty Hunter",
+    "team": "townsfolk"
+  },
+  {
+    "id": "empath",
+    "name": "Empath",
+    "team": "townsfolk"
+  },
+  {
+    "id": "highpriestess",
+    "name": "High Priestess",
+    "team": "townsfolk"
+  },
+  {
+    "id": "sailor",
+    "name": "Sailor",
+    "team": "townsfolk"
+  },
+  {
+    "id": "balloonist",
+    "name": "Balloonist",
+    "team": "townsfolk"
+  },
+  {
+    "id": "general",
+    "name": "General",
+    "team": "townsfolk"
+  },
+  {
+    "id": "preacher",
+    "name": "Preacher",
+    "team": "townsfolk"
+  },
+  {
+    "id": "chambermaid",
+    "name": "Chambermaid",
+    "team": "townsfolk"
+  },
+  {
+    "id": "villageidiot",
+    "name": "Village Idiot",
+    "team": "townsfolk"
+  },
+  {
+    "id": "snakecharmer",
+    "name": "Snake Charmer",
+    "team": "townsfolk"
+  },
+  {
+    "id": "mathematician",
+    "name": "Mathematician",
+    "team": "townsfolk"
+  },
+  {
+    "id": "king",
+    "name": "King",
+    "team": "townsfolk"
+  },
+  {
+    "id": "dreamer",
+    "name": "Dreamer",
+    "team": "townsfolk"
+  },
+  {
+    "id": "fortuneteller",
+    "name": "Fortune Teller",
+    "team": "townsfolk"
+  },
+  {
+    "id": "cultleader",
+    "name": "Cult Leader",
+    "team": "townsfolk"
+  },
+  {
+    "id": "flowergirl",
+    "name": "Flowergirl",
+    "team": "townsfolk"
+  },
+  {
+    "id": "towncrier",
+    "name": "Town Crier",
+    "team": "townsfolk"
+  },
+  {
+    "id": "oracle",
+    "name": "Oracle",
+    "team": "townsfolk"
+  },
+  {
+    "id": "undertaker",
+    "name": "Undertaker",
+    "team": "townsfolk"
+  },
+  {
+    "id": "innkeeper",
+    "name": "Innkeeper",
+    "team": "townsfolk"
+  },
+  {
+    "id": "monk",
+    "name": "Monk",
+    "team": "townsfolk"
+  },
+  {
+    "id": "gambler",
+    "name": "Gambler",
+    "team": "townsfolk"
+  },
+  {
+    "id": "acrobat",
+    "name": "Acrobat",
+    "team": "townsfolk"
+  },
+  {
+    "id": "exorcist",
+    "name": "Exorcist",
+    "team": "townsfolk"
+  },
+  {
+    "id": "lycanthrope",
+    "name": "Lycanthrope",
+    "team": "townsfolk"
+  },
+  {
+    "id": "gossip",
+    "name": "Gossip",
+    "team": "townsfolk"
+  },
+  {
+    "id": "savant",
+    "name": "Savant",
+    "team": "townsfolk"
+  },
+  {
+    "id": "alsaahir",
+    "name": "Alsaahir",
+    "team": "townsfolk"
+  },
+  {
+    "id": "engineer",
+    "name": "Engineer",
+    "team": "townsfolk"
+  },
+  {
+    "id": "nightwatchman",
+    "name": "Nightwatchman",
+    "team": "townsfolk"
+  },
+  {
+    "id": "courtier",
+    "name": "Courtier",
+    "team": "townsfolk"
+  },
+  {
+    "id": "seamstress",
+    "name": "Seamstress",
+    "team": "townsfolk"
+  },
+  {
+    "id": "philosopher",
+    "name": "Philosopher",
+    "team": "townsfolk"
+  },
+  {
+    "id": "huntsman",
+    "name": "Huntsman",
+    "team": "townsfolk"
+  },
+  {
+    "id": "professor",
+    "name": "Professor",
+    "team": "townsfolk"
+  },
+  {
+    "id": "artist",
+    "name": "Artist",
+    "team": "townsfolk"
+  },
+  {
+    "id": "slayer",
+    "name": "Slayer",
+    "team": "townsfolk"
+  },
+  {
+    "id": "fisherman",
+    "name": "Fisherman",
+    "team": "townsfolk"
+  },
+  {
+    "id": "princess",
+    "name": "Princess",
+    "team": "townsfolk"
+  },
+  {
+    "id": "juggler",
+    "name": "Juggler",
+    "team": "townsfolk"
+  },
+  {
+    "id": "soldier",
+    "name": "Soldier",
+    "team": "townsfolk"
+  },
+  {
+    "id": "alchemist",
+    "name": "Alchemist",
+    "team": "townsfolk"
+  },
+  {
+    "id": "cannibal",
+    "name": "Cannibal",
+    "team": "townsfolk"
+  },
+  {
+    "id": "amnesiac",
+    "name": "Amnesiac",
+    "team": "townsfolk"
+  },
+  {
+    "id": "farmer",
+    "name": "Farmer",
+    "team": "townsfolk"
+  },
+  {
+    "id": "minstrel",
+    "name": "Minstrel",
+    "team": "townsfolk"
+  },
+  {
+    "id": "ravenkeeper",
+    "name": "Ravenkeeper",
+    "team": "townsfolk"
+  },
+  {
+    "id": "sage",
+    "name": "Sage",
+    "team": "townsfolk"
+  },
+  {
+    "id": "choirboy",
+    "name": "Choirboy",
+    "team": "townsfolk"
+  },
+  {
+    "id": "banshee",
+    "name": "Banshee",
+    "team": "townsfolk"
+  },
+  {
+    "id": "tealady",
+    "name": "Tea Lady",
+    "team": "townsfolk"
+  },
+  {
+    "id": "mayor",
+    "name": "Mayor",
+    "team": "townsfolk"
+  },
+  {
+    "id": "fool",
+    "name": "Fool",
+    "team": "townsfolk"
+  },
+  {
+    "id": "virgin",
+    "name": "Virgin",
+    "team": "townsfolk"
+  },
+  {
+    "id": "magician",
+    "name": "Magician",
+    "team": "townsfolk"
+  },
+  {
+    "id": "poppygrower",
+    "name": "Poppy Grower",
+    "team": "townsfolk"
+  },
+  {
+    "id": "pacifist",
+    "name": "Pacifist",
+    "team": "townsfolk"
+  },
+  {
+    "id": "atheist",
+    "name": "Atheist",
+    "team": "townsfolk"
+  },
+  {
+    "id": "hermit",
+    "name": "Hermit",
+    "team": "outsider"
+  },
+  {
+    "id": "butler",
+    "name": "Butler",
+    "team": "outsider"
+  },
+  {
+    "id": "goon",
+    "name": "Goon",
+    "team": "outsider"
+  },
+  {
+    "id": "ogre",
+    "name": "Ogre",
+    "team": "outsider"
+  },
+  {
+    "id": "lunatic",
+    "name": "Lunatic",
+    "team": "outsider"
+  },
+  {
+    "id": "drunk",
+    "name": "Drunk",
+    "team": "outsider"
+  },
+  {
+    "id": "tinker",
+    "name": "Tinker",
+    "team": "outsider"
+  },
+  {
+    "id": "recluse",
+    "name": "Recluse",
+    "team": "outsider"
+  },
+  {
+    "id": "golem",
+    "name": "Golem",
+    "team": "outsider"
+  },
+  {
+    "id": "sweetheart",
+    "name": "Sweetheart",
+    "team": "outsider"
+  },
+  {
+    "id": "plaguedoctor",
+    "name": "Plague Doctor",
+    "team": "outsider"
+  },
+  {
+    "id": "klutz",
+    "name": "Klutz",
+    "team": "outsider"
+  },
+  {
+    "id": "moonchild",
+    "name": "Moonchild",
+    "team": "outsider"
+  },
+  {
+    "id": "saint",
+    "name": "Saint",
+    "team": "outsider"
+  },
+  {
+    "id": "barber",
+    "name": "Barber",
+    "team": "outsider"
+  },
+  {
+    "id": "hatter",
+    "name": "Hatter",
+    "team": "outsider"
+  },
+  {
+    "id": "mutant",
+    "name": "Mutant",
+    "team": "outsider"
+  },
+  {
+    "id": "politician",
+    "name": "Politician",
+    "team": "outsider"
+  },
+  {
+    "id": "zealot",
+    "name": "Zealot",
+    "team": "outsider"
+  },
+  {
+    "id": "damsel",
+    "name": "Damsel",
+    "team": "outsider"
+  },
+  {
+    "id": "snitch",
+    "name": "Snitch",
+    "team": "outsider"
+  },
+  {
+    "id": "heretic",
+    "name": "Heretic",
+    "team": "outsider"
+  },
+  {
+    "id": "puzzlemaster",
+    "name": "Puzzlemaster",
+    "team": "outsider"
+  },
+  {
+    "id": "mezepheles",
+    "name": "Mezepheles",
+    "team": "minion"
+  },
+  {
+    "id": "godfather",
+    "name": "Godfather",
+    "team": "minion"
+  },
+  {
+    "id": "poisoner",
+    "name": "Poisoner",
+    "team": "minion"
+  },
+  {
+    "id": "devilsadvocate",
+    "name": "Devil's Advocate",
+    "team": "minion"
+  },
+  {
+    "id": "spy",
+    "name": "Spy",
+    "team": "minion"
+  },
+  {
+    "id": "harpy",
+    "name": "Harpy",
+    "team": "minion"
+  },
+  {
+    "id": "witch",
+    "name": "Witch",
+    "team": "minion"
+  },
+  {
+    "id": "cerenovus",
+    "name": "Cerenovus",
+    "team": "minion"
+  },
+  {
+    "id": "fearmonger",
+    "name": "Fearmonger",
+    "team": "minion"
+  },
+  {
+    "id": "pithag",
+    "name": "Pit-Hag",
+    "team": "minion"
+  },
+  {
+    "id": "psychopath",
+    "name": "Psychopath",
+    "team": "minion"
+  },
+  {
+    "id": "assassin",
+    "name": "Assassin",
+    "team": "minion"
+  },
+  {
+    "id": "wizard",
+    "name": "Wizard",
+    "team": "minion"
+  },
+  {
+    "id": "widow",
+    "name": "Widow",
+    "team": "minion"
+  },
+  {
+    "id": "xaan",
+    "name": "Xaan",
+    "team": "minion"
+  },
+  {
+    "id": "marionette",
+    "name": "Marionette",
+    "team": "minion"
+  },
+  {
+    "id": "wraith",
+    "name": "Wraith",
+    "team": "minion"
+  },
+  {
+    "id": "summoner",
+    "name": "Summoner",
+    "team": "minion"
+  },
+  {
+    "id": "eviltwin",
+    "name": "Evil Twin",
+    "team": "minion"
+  },
+  {
+    "id": "goblin",
+    "name": "Goblin",
+    "team": "minion"
+  },
+  {
+    "id": "boomdandy",
+    "name": "Boomdandy",
+    "team": "minion"
+  },
+  {
+    "id": "mastermind",
+    "name": "Mastermind",
+    "team": "minion"
+  },
+  {
+    "id": "scarletwoman",
+    "name": "Scarlet Woman",
+    "team": "minion"
+  },
+  {
+    "id": "vizier",
+    "name": "Vizier",
+    "team": "minion"
+  },
+  {
+    "id": "organgrinder",
+    "name": "Organ Grinder",
+    "team": "minion"
+  },
+  {
+    "id": "boffin",
+    "name": "Boffin",
+    "team": "minion"
+  },
+  {
+    "id": "baron",
+    "name": "Baron",
+    "team": "minion"
+  },
+  {
+    "id": "yaggababble",
+    "name": "Yaggababble",
+    "team": "demon"
+  },
+  {
+    "id": "pukka",
+    "name": "Pukka",
+    "team": "demon"
+  },
+  {
+    "id": "lilmonsta",
+    "name": "Lil' Monsta",
+    "team": "demon"
+  },
+  {
+    "id": "nodashii",
+    "name": "No Dashii",
+    "team": "demon"
+  },
+  {
+    "id": "imp",
+    "name": "Imp",
+    "team": "demon"
+  },
+  {
+    "id": "shabaloth",
+    "name": "Shabaloth",
+    "team": "demon"
+  },
+  {
+    "id": "ojo",
+    "name": "Ojo",
+    "team": "demon"
+  },
+  {
+    "id": "kazali",
+    "name": "Kazali",
+    "team": "demon"
+  },
+  {
+    "id": "po",
+    "name": "Po",
+    "team": "demon"
+  },
+  {
+    "id": "zombuul",
+    "name": "Zombuul",
+    "team": "demon"
+  },
+  {
+    "id": "vigormortis",
+    "name": "Vigormortis",
+    "team": "demon"
+  },
+  {
+    "id": "vortox",
+    "name": "Vortox",
+    "team": "demon"
+  },
+  {
+    "id": "legion",
+    "name": "Legion",
+    "team": "demon"
+  },
+  {
+    "id": "fanggu",
+    "name": "Fang Gu",
+    "team": "demon"
+  },
+  {
+    "id": "lordoftyphon",
+    "name": "Lord of Typhon",
+    "team": "demon"
+  },
+  {
+    "id": "lleech",
+    "name": "Lleech",
+    "team": "demon"
+  },
+  {
+    "id": "alhadikhia",
+    "name": "Al-Hadikhia",
+    "team": "demon"
+  },
+  {
+    "id": "riot",
+    "name": "Riot",
+    "team": "demon"
+  },
+  {
+    "id": "leviathan",
+    "name": "Leviathan",
+    "team": "demon"
+  },
+  {
+    "id": "thief",
+    "name": "Thief",
+    "team": "traveller"
+  },
+  {
+    "id": "bureaucrat",
+    "name": "Bureaucrat",
+    "team": "traveller"
+  },
+  {
+    "id": "barista",
+    "name": "Barista",
+    "team": "traveller"
+  },
+  {
+    "id": "harlot",
+    "name": "Harlot",
+    "team": "traveller"
+  },
+  {
+    "id": "butcher",
+    "name": "Butcher",
+    "team": "traveller"
+  },
+  {
+    "id": "cacklejack",
+    "name": "Cacklejack",
+    "team": "traveller"
+  },
+  {
+    "id": "gunslinger",
+    "name": "Gunslinger",
+    "team": "traveller"
+  },
+  {
+    "id": "matron",
+    "name": "Matron",
+    "team": "traveller"
+  },
+  {
+    "id": "gangster",
+    "name": "Gangster",
+    "team": "traveller"
+  },
+  {
+    "id": "bonecollector",
+    "name": "Bone Collector",
+    "team": "traveller"
+  },
+  {
+    "id": "judge",
+    "name": "Judge",
+    "team": "traveller"
+  },
+  {
+    "id": "apprentice",
+    "name": "Apprentice",
+    "team": "traveller"
+  },
+  {
+    "id": "beggar",
+    "name": "Beggar",
+    "team": "traveller"
+  },
+  {
+    "id": "deviant",
+    "name": "Deviant",
+    "team": "traveller"
+  },
+  {
+    "id": "scapegoat",
+    "name": "Scapegoat",
+    "team": "traveller"
+  },
+  {
+    "id": "gnome",
+    "name": "Gnome",
+    "team": "traveller"
+  },
+  {
+    "id": "bishop",
+    "name": "Bishop",
+    "team": "traveller"
+  },
+  {
+    "id": "voudon",
+    "name": "Voudon",
+    "team": "traveller"
+  },
+  {
+    "id": "angel",
+    "name": "Angel",
+    "team": "fabled"
+  },
+  {
+    "id": "buddhist",
+    "name": "Buddhist",
+    "team": "fabled"
+  },
+  {
+    "id": "deusexfiasco",
+    "name": "Deus ex Fiasco",
+    "team": "fabled"
+  },
+  {
+    "id": "djinn",
+    "name": "Djinn",
+    "team": "fabled"
+  },
+  {
+    "id": "doomsayer",
+    "name": "Doomsayer",
+    "team": "fabled"
+  },
+  {
+    "id": "duchess",
+    "name": "Duchess",
+    "team": "fabled"
+  },
+  {
+    "id": "ferryman",
+    "name": "Ferryman",
+    "team": "fabled"
+  },
+  {
+    "id": "fibbin",
+    "name": "Fibbin",
+    "team": "fabled"
+  },
+  {
+    "id": "fiddler",
+    "name": "Fiddler",
+    "team": "fabled"
+  },
+  {
+    "id": "hellslibrarian",
+    "name": "Hell's Librarian",
+    "team": "fabled"
+  },
+  {
+    "id": "revolutionary",
+    "name": "Revolutionary",
+    "team": "fabled"
+  },
+  {
+    "id": "sentinel",
+    "name": "Sentinel",
+    "team": "fabled"
+  },
+  {
+    "id": "spiritofivory",
+    "name": "Spirit of Ivory",
+    "team": "fabled"
+  },
+  {
+    "id": "toymaker",
+    "name": "Toymaker",
+    "team": "fabled"
+  },
+  {
+    "id": "bigwig",
+    "name": "Big Wig",
+    "team": "loric"
+  },
+  {
+    "id": "bootlegger",
+    "name": "Bootlegger",
+    "team": "loric"
+  },
+  {
+    "id": "gardener",
+    "name": "Gardener",
+    "team": "loric"
+  },
+  {
+    "id": "godofug",
+    "name": "God of Ug",
+    "team": "loric"
+  },
+  {
+    "id": "hindu",
+    "name": "Hindu",
+    "team": "loric"
+  },
+  {
+    "id": "knaves",
+    "name": "Knaves",
+    "team": "loric"
+  },
+  {
+    "id": "pope",
+    "name": "Pope",
+    "team": "loric"
+  },
+  {
+    "id": "stormcatcher",
+    "name": "Storm Catcher",
+    "team": "loric"
+  },
+  {
+    "id": "tor",
+    "name": "Tor",
+    "team": "loric"
+  },
+  {
+    "id": "ventriloquist",
+    "name": "Ventriloquist",
+    "team": "loric"
+  },
+  {
+    "id": "zenomancer",
+    "name": "Zenomancer",
+    "team": "loric"
+  }
+]

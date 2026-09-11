@@ -63,6 +63,9 @@ const groups = [
   },
   { role: 'MINION', label: 'Esbirros', singular: 'Esbirro', color: '#df6265' },
   { role: 'DEMON', label: 'Demonios', singular: 'Demonio', color: '#bd343d' },
+  { role: 'TRAVELLER', label: 'Viajeros', singular: 'Viajero', color: '#b88bd8' },
+  { role: 'FABLED', label: 'Fábulas', singular: 'Fábula', color: '#d9ae5f' },
+  { role: 'LORIC', label: 'Lóricos', singular: 'Lórico', color: '#b9a58c' },
 ] as const;
 
 const roleAppearance: Record<
@@ -88,6 +91,21 @@ const roleAppearance: Record<
     label: 'Demonio',
     card: 'border-[#b71c1c]/60 bg-[#7f0000]/40',
     badge: 'bg-[#b71c1c]/35 text-[#ffcdd2]',
+  },
+  TRAVELLER: {
+    label: 'Viajero',
+    card: 'border-[#8e62ad]/55 bg-[#5d3478]/30',
+    badge: 'bg-[#8e62ad]/30 text-[#dfb8f5]',
+  },
+  FABLED: {
+    label: 'Fábula',
+    card: 'border-[#d9ae5f]/50 bg-[#8a6728]/25',
+    badge: 'bg-[#d9ae5f]/25 text-[#f0d397]',
+  },
+  LORIC: {
+    label: 'Lórico',
+    card: 'border-[#9d8972]/50 bg-[#66513c]/25',
+    badge: 'bg-[#9d8972]/25 text-[#dac7ae]',
   },
 };
 

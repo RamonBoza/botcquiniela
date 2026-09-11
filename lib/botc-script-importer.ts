@@ -1,4 +1,13 @@
-export type CharacterType = 'TOWNSFOLK' | 'OUTSIDER' | 'MINION' | 'DEMON';
+import officialRoles from './botc-official-roles.json';
+
+export type CharacterType =
+  | 'TOWNSFOLK'
+  | 'OUTSIDER'
+  | 'MINION'
+  | 'DEMON'
+  | 'TRAVELLER'
+  | 'FABLED'
+  | 'LORIC';
 export type ImportedCharacter = { id: string; name: string; localizedName?: string; type: CharacterType };
 export type ImportedScript = { name: string; author?: string; characters: ImportedCharacter[]; source: 'BOTC_JSON' };
 
@@ -17,34 +26,19 @@ const teamMap: Record<string, CharacterType> = {
   outsider: 'OUTSIDER',
   minion: 'MINION',
   demon: 'DEMON',
+  traveller: 'TRAVELLER',
+  traveler: 'TRAVELLER',
+  fabled: 'FABLED',
+  loric: 'LORIC',
 };
 
-let officialCatalogPromise: Promise<Record<string, { name: string; type: CharacterType }>> | undefined;
-
-function loadOfficialCatalog() {
-  officialCatalogPromise ??= fetch(
-    'https://release.botc.app/resources/data/roles.json',
-  )
-    .then(async (response) => {
-      if (!response.ok) throw new Error('No se ha podido consultar el catálogo oficial de BOTC.');
-      const roles = (await response.json()) as unknown;
-      if (!Array.isArray(roles)) throw new Error('El catálogo oficial de BOTC no tiene el formato esperado.');
-      return Object.fromEntries(
-        roles.flatMap((role) => {
-          if (typeof role !== 'object' || role === null) return [];
-          const value = role as { id?: unknown; name?: unknown; team?: unknown };
-          const type = teamMap[typeof value.team === 'string' ? value.team.toLowerCase() : ''];
-          if (typeof value.id !== 'string' || !type) return [];
-          return [[value.id.toLowerCase(), { name: typeof value.name === 'string' ? value.name : value.id, type }]];
-        }),
-      );
-    })
-    .catch((error) => {
-      officialCatalogPromise = undefined;
-      throw error;
-    });
-  return officialCatalogPromise;
-}
+const officialCatalog: Record<string, { name: string; type: CharacterType }> =
+  Object.fromEntries(
+    officialRoles.flatMap((role) => {
+      const type = teamMap[role.team.toLowerCase()];
+      return type ? [[role.id.toLowerCase(), { name: role.name, type }]] : [];
+    }),
+  );
 
 export class BotcJsonScriptImporter implements ScriptImporter {
   async import(source: unknown): Promise<ImportedScript> {
@@ -54,11 +48,6 @@ export class BotcJsonScriptImporter implements ScriptImporter {
       (typeof item === 'string' && Boolean(item.trim())) ||
       (typeof item === 'object' && item !== null && typeof (item as { id?: unknown }).id === 'string' && (item as { id: string }).id !== '_meta'),
     );
-    const needsOfficialCatalog = entries.some((entry) => {
-      const item = typeof entry === 'string' ? { id: entry } : entry;
-      return !catalog[item.id.toLowerCase()] && !teamMap[item.team?.toLowerCase() ?? ''];
-    });
-    const officialCatalog = needsOfficialCatalog ? await loadOfficialCatalog() : {};
     const characters = entries.map((entry) => {
       const item = typeof entry === 'string' ? { id: entry } : entry;
       const local = catalog[item.id.toLowerCase()];
@@ -66,7 +55,7 @@ export class BotcJsonScriptImporter implements ScriptImporter {
       const type = teamMap[item.team?.toLowerCase() ?? ''] ?? local?.type ?? official?.type;
       if (!type) {
         throw new Error(
-          `El personaje casero «${item.id}» debe incluir team: townsfolk, outsider, minion o demon.`,
+          `El personaje casero «${item.id}» debe incluir un team válido.`,
         );
       }
       return {
