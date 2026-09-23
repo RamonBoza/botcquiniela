@@ -226,7 +226,11 @@ export function QuinielaApp() {
             });
             apiFetch(`/api/games/prediction?gameId=${game.id}`)
               .then((r) => r.json())
-              .then((data) => setSelected(data.characterIds ?? []));
+              .then((data) => {
+                setSelected(data.characterIds ?? []);
+                setSaved(Boolean(data.characterIds?.length));
+                if (data.status) setStatus(data.status);
+              });
             setView('play');
           }}
           manageGame={(game) => {
@@ -315,8 +319,12 @@ export function QuinielaApp() {
           title={name}
           script={script}
           playerCount={players}
+          status={status}
           selected={selected}
-          setSelected={setSelected}
+          setSelected={(next) => {
+            setSelected(next);
+            setSaved(false);
+          }}
           saved={saved}
           save={async () => {
             const response = await apiFetch('/api/games/prediction', {
@@ -335,13 +343,16 @@ export function QuinielaApp() {
           players={players}
           status={status}
           setStatus={async (next) => {
-            if (next === 'LOCKED') {
+            if (next === 'LOCKED' || next === 'OPEN') {
               const response = await apiFetch('/api/games/manage', {
                 method: 'POST',
                 headers: { 'content-type': 'application/json' },
-                body: JSON.stringify({ gameId, action: 'lock' }),
+                body: JSON.stringify({
+                  gameId,
+                  action: next === 'LOCKED' ? 'lock' : 'reopen',
+                }),
               });
-              if (response.ok) setStatus('LOCKED');
+              if (response.ok) setStatus(next);
             }
           }}
           script={script}
@@ -695,6 +706,8 @@ type LiveSeason = {
   startsAt: number;
   endsAt: number | null;
   gameCount: number;
+  prizeText: string | null;
+  penaltyText: string | null;
 };
 type SeasonStanding = {
   userId: string;
@@ -725,6 +738,8 @@ function LiveOrganizationDashboard({
   const [selectedSeasonId, setSelectedSeasonId] = useState('');
   const [standings, setStandings] = useState<SeasonStanding[]>([]);
   const [newSeason, setNewSeason] = useState('');
+  const [seasonPrize, setSeasonPrize] = useState('');
+  const [seasonPenalty, setSeasonPenalty] = useState('');
   const [active, setActive] = useState('');
   const [newOrg, setNewOrg] = useState('');
   const [joinCode, setJoinCode] = useState('');
@@ -765,6 +780,11 @@ function LiveOrganizationDashboard({
     setSeasons(data.seasons);
     setSelectedSeasonId(data.selectedSeasonId ?? '');
     setStandings(data.standings);
+    const selected = data.seasons.find(
+      (season: LiveSeason) => season.id === data.selectedSeasonId,
+    );
+    setSeasonPrize(selected?.prizeText ?? '');
+    setSeasonPenalty(selected?.penaltyText ?? '');
   };
   useEffect(() => {
     if (active) void loadSeasons(active);
@@ -834,6 +854,23 @@ function LiveOrganizationDashboard({
     setNewSeason('');
     setMessage(`La temporada «${data.season.name}» ya está activa.`);
     await loadSeasons(active, data.season.id);
+  };
+  const saveSeasonRewards = async () => {
+    const response = await apiFetch('/api/seasons', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        action: 'updateRewards',
+        organizationId: active,
+        seasonId: selectedSeasonId,
+        prizeText: seasonPrize,
+        penaltyText: seasonPenalty,
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) return setMessage(data.error);
+    setMessage('Premio y penitencia guardados.');
+    await loadSeasons(active, selectedSeasonId);
   };
   return (
     <section className="mx-auto max-w-2xl px-5 py-8">
@@ -982,6 +1019,39 @@ function LiveOrganizationDashboard({
                 </Button>
               </div>
             )}
+            {selectedSeasonId && (
+              <div className="mt-4 grid gap-3 border-t border-white/[.06] pt-4 sm:grid-cols-2">
+                <label className="text-xs text-zinc-500">
+                  Premio de la temporada
+                  <Input
+                    value={seasonPrize}
+                    readOnly={current?.role !== 'ADMIN'}
+                    onChange={(event) => setSeasonPrize(event.target.value)}
+                    placeholder="Ej. cena pagada por el último"
+                    className="mt-1.5 h-10 bg-white/[.03]"
+                  />
+                </label>
+                <label className="text-xs text-zinc-500">
+                  Penitencia de la temporada
+                  <Input
+                    value={seasonPenalty}
+                    readOnly={current?.role !== 'ADMIN'}
+                    onChange={(event) => setSeasonPenalty(event.target.value)}
+                    placeholder="Ej. narrar la siguiente partida"
+                    className="mt-1.5 h-10 bg-white/[.03]"
+                  />
+                </label>
+                {current?.role === 'ADMIN' && (
+                  <Button
+                    variant="outline"
+                    onClick={saveSeasonRewards}
+                    className="sm:col-span-2"
+                  >
+                    Guardar premio y penitencia
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
           <div className="mt-5 rounded-2xl border bg-white/[.025] p-5">
             <div className="flex items-center justify-between">
@@ -1124,13 +1194,16 @@ function LiveOrganizationDashboard({
                       </Button>
                     ) : (
                       <>
-                        {game.status === 'OPEN' && (
+                        {(game.status === 'OPEN' ||
+                          game.status === 'LOCKED') && (
                           <Button
                             variant="outline"
                             onClick={() => joinGame(game)}
                             className="flex-1"
                           >
-                            Hacer mi apuesta
+                            {game.status === 'OPEN'
+                              ? 'Hacer o modificar mi apuesta'
+                              : 'Ver mi apuesta'}
                           </Button>
                         )}
                         {current?.role === 'ADMIN' && (
@@ -1415,6 +1488,7 @@ function Selector(p: {
   title: string;
   script: ImportedScript;
   playerCount: number;
+  status: 'OPEN' | 'LOCKED' | 'FINISHED';
   selected: string[];
   setSelected: (s: string[]) => void;
   saved: boolean;
@@ -1437,6 +1511,7 @@ function Selector(p: {
   const selectionLimitReached =
     p.mode === 'prediction' && p.selected.length >= p.playerCount;
   const toggle = (id: string) => {
+    if (p.status !== 'OPEN') return;
     if (!p.selected.includes(id) && selectionLimitReached) return;
     p.setSelected(
       p.selected.includes(id)
@@ -1448,7 +1523,7 @@ function Selector(p: {
     <section className="pb-36">
       <div className="mx-auto max-w-5xl px-4 pt-8">
         <div className="mx-auto max-w-xl text-center">
-          <StatePill status="OPEN" />
+          <StatePill status={p.status} />
           <p className="mb-1 mt-4 text-xs font-semibold uppercase tracking-[.2em] text-zinc-500">
             Lunes, 14 de septiembre
           </p>
@@ -1456,8 +1531,9 @@ function Selector(p: {
             {p.title}
           </h1>
           <p className="mt-4 text-sm leading-relaxed text-zinc-400">
-            Elige los personajes que crees que formarán parte de la partida. Tu
-            selección será secreta hasta el final.
+            {p.status === 'OPEN'
+              ? 'Elige los personajes que crees que formarán parte de la partida. Puedes modificar y volver a guardar tu apuesta hasta el cierre.'
+              : 'Esta es tu apuesta guardada. Ya no puede modificarse mientras la quiniela permanezca cerrada.'}
           </p>
           <div className="my-7 gold-line" />
           <div className="grid grid-cols-2 gap-3 text-left">
@@ -1503,7 +1579,9 @@ function Selector(p: {
                 Guía para {p.playerCount} jugadores
               </p>
               <p className="mt-1 text-xs leading-5 text-zinc-500">
-                Distribución estándar. Algunos personajes pueden modificarla.
+                Distribución estándar. Los poderes pueden modificar el setup;
+                los bonus se calcularán con los roles que realmente entren en
+                juego.
               </p>
             </div>
             <ScrollText className="size-5 shrink-0 text-[#d9ae5f]" />
@@ -1539,12 +1617,18 @@ function Selector(p: {
           script={p.script}
           selected={p.selected}
           toggle={toggle}
-          selectionLimitReached={selectionLimitReached}
+          selectionLimitReached={
+            selectionLimitReached || p.status !== 'OPEN'
+          }
         />
       </div>
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/8 bg-[#100e14]/92 p-4 backdrop-blur-xl">
         <div className="mx-auto max-w-xl">
-          {p.saved ? (
+          {p.status !== 'OPEN' ? (
+            <div className="flex h-12 items-center justify-center gap-2 rounded-xl border border-[#d9ae5f]/25 bg-[#d9ae5f]/10 px-3 text-center text-sm font-semibold text-[#d9ae5f]">
+              <LockKeyhole className="size-4" /> Quiniela cerrada · vista en modo lectura
+            </div>
+          ) : p.saved ? (
             <div className="flex h-12 items-center justify-center gap-2 rounded-xl border border-emerald-400/25 bg-emerald-400/10 px-3 text-center text-sm font-semibold text-emerald-300">
               <Check className="size-4" /> Quiniela guardada. Puedes modificarla
               hasta el cierre.
@@ -1676,7 +1760,11 @@ function Host(p: {
         </h1>
         <p className="mt-2 max-w-lg text-sm leading-6 text-zinc-400">
           Marca los personajes que realmente formaron parte del setup. Tú
-          decides qué cuenta como “en juego”.
+          decides qué cuenta como “en juego”; esta selección es la que se usa
+          para contemplar variaciones provocadas por poderes.
+        </p>
+        <p className="mt-3 text-sm font-semibold text-[#d9ae5f]">
+          {p.actual.length} de {p.players} personajes
         </p>
         <CharacterGrid
           script={p.script}
@@ -1685,9 +1773,12 @@ function Host(p: {
             p.setActual(
               p.actual.includes(id)
                 ? p.actual.filter((x) => x !== id)
-                : [...p.actual, id],
+                : p.actual.length < p.players
+                  ? [...p.actual, id]
+                  : p.actual,
             )
           }
+          selectionLimitReached={p.actual.length >= p.players}
         />
         <Button
           onClick={p.finish}
@@ -1761,6 +1852,13 @@ function Host(p: {
             🔒 Quiniela cerrada. ¡A jugar!
           </div>
           <Button
+            onClick={() => p.setStatus('OPEN')}
+            variant="outline"
+            className="h-12 w-full"
+          >
+            Reabrir apuestas
+          </Button>
+          <Button
             onClick={() => setSetup(true)}
             className="h-14 w-full bg-[#d9ae5f] text-base font-extrabold text-[#17120a]"
           >
@@ -1786,6 +1884,14 @@ function Results({
     displayName: string;
     characterIds: string[];
     score: number;
+    breakdown: {
+      hits: number;
+      townsfolkBonus: number;
+      outsiderBonus: number;
+      minionBonus: number;
+      fullHouse15Bonus: number;
+      total: number;
+    };
   };
   const [ranking, setRanking] = useState<RankingEntry[]>([]);
   const [actual, setActual] = useState(fallbackActual);
@@ -1994,8 +2100,31 @@ function Results({
                 })}
             </div>
             <p className="display mt-6 text-center text-2xl font-bold">
-              {reveal.score} / {actual.length} aciertos
+              {reveal.score} puntos · {reveal.breakdown.hits} / {actual.length}{' '}
+              aciertos
             </p>
+            <div className="mt-3 flex flex-wrap justify-center gap-2 text-[10px] font-bold uppercase tracking-wide">
+              {reveal.breakdown.townsfolkBonus > 0 && (
+                <span className="rounded-full bg-emerald-400/10 px-2.5 py-1 text-emerald-300">
+                  Todos los aldeanos +2
+                </span>
+              )}
+              {reveal.breakdown.outsiderBonus > 0 && (
+                <span className="rounded-full bg-emerald-400/10 px-2.5 py-1 text-emerald-300">
+                  Todos los forasteros +1
+                </span>
+              )}
+              {reveal.breakdown.minionBonus > 0 && (
+                <span className="rounded-full bg-red-400/10 px-2.5 py-1 text-red-300">
+                  Todos los esbirros +1
+                </span>
+              )}
+              {reveal.breakdown.fullHouse15Bonus > 0 && (
+                <span className="rounded-full bg-[#d9ae5f]/15 px-2.5 py-1 text-[#d9ae5f]">
+                  Pleno al 15 +3
+                </span>
+              )}
+            </div>
           </div>
         </div>
       )}

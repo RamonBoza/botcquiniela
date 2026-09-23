@@ -123,6 +123,16 @@ export async function ensureDatabase() {
     await d
       .prepare('ALTER TABLE app_games ADD COLUMN IF NOT EXISTS season_id TEXT')
       .run();
+    await d
+      .prepare(
+        'ALTER TABLE organization_seasons ADD COLUMN IF NOT EXISTS prize_text TEXT',
+      )
+      .run();
+    await d
+      .prepare(
+        'ALTER TABLE organization_seasons ADD COLUMN IF NOT EXISTS penalty_text TEXT',
+      )
+      .run();
     const organizations = await d
       .prepare(
         'SELECT id,created_by AS createdBy,created_at AS createdAt FROM organizations',

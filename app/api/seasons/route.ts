@@ -1,11 +1,15 @@
 import { requireUser } from '@/lib/server-auth';
 import { db, ensureDatabase } from '@/lib/server-store';
+import { calculateScore } from '@/lib/scoring';
+import type { ImportedCharacter } from '@/lib/botc-script-importer';
 
 type PredictionRow = {
   userId: string;
   displayName: string;
   characterIdsJson: string;
   actualJson: string;
+  charactersJson: string;
+  playerCount: number;
 };
 
 export async function GET(request: Request) {
@@ -28,7 +32,7 @@ export async function GET(request: Request) {
 
   const seasons = await db()
     .prepare(
-      "SELECT s.id,s.name,s.status,s.starts_at AS startsAt,s.ends_at AS endsAt,(SELECT COUNT(*) FROM app_games g WHERE g.season_id=s.id) AS gameCount FROM organization_seasons s WHERE s.organization_id=? ORDER BY CASE WHEN s.status='ACTIVE' THEN 0 ELSE 1 END,s.created_at DESC",
+      "SELECT s.id,s.name,s.status,s.prize_text AS prizeText,s.penalty_text AS penaltyText,s.starts_at AS startsAt,s.ends_at AS endsAt,(SELECT COUNT(*) FROM app_games g WHERE g.season_id=s.id) AS gameCount FROM organization_seasons s WHERE s.organization_id=? ORDER BY CASE WHEN s.status='ACTIVE' THEN 0 ELSE 1 END,s.created_at DESC",
     )
     .bind(organizationId)
     .all();
@@ -38,7 +42,7 @@ export async function GET(request: Request) {
   const predictions = seasonId
     ? await db()
         .prepare(
-          "SELECT u.id AS userId,u.display_name AS displayName,p.character_ids_json AS characterIdsJson,g.actual_character_ids_json AS actualJson FROM app_predictions p JOIN app_games g ON g.id=p.game_id JOIN users u ON u.id=p.user_id WHERE g.season_id=? AND g.status='FINISHED' AND g.actual_character_ids_json IS NOT NULL",
+          "SELECT u.id AS userId,u.display_name AS displayName,p.character_ids_json AS characterIdsJson,g.actual_character_ids_json AS actualJson,g.characters_json AS charactersJson,g.player_count AS playerCount FROM app_predictions p JOIN app_games g ON g.id=p.game_id JOIN users u ON u.id=p.user_id WHERE g.season_id=? AND g.status='FINISHED' AND g.actual_character_ids_json IS NOT NULL",
         )
         .bind(seasonId)
         .all<PredictionRow>()
@@ -56,7 +60,12 @@ export async function GET(request: Request) {
       points: 0,
       gamesPlayed: 0,
     };
-    current.points += predicted.filter((id) => actual.includes(id)).length;
+    current.points += calculateScore(
+      predicted,
+      actual,
+      JSON.parse(row.charactersJson) as ImportedCharacter[],
+      Number(row.playerCount),
+    ).total;
     current.gamesPlayed += 1;
     totals.set(row.userId, current);
   }
@@ -79,6 +88,10 @@ export async function POST(request: Request) {
   const body = (await request.json()) as {
     organizationId?: string;
     name?: string;
+    action?: 'create' | 'updateRewards';
+    seasonId?: string;
+    prizeText?: string;
+    penaltyText?: string;
   };
   const membership = await db()
     .prepare(
@@ -91,6 +104,27 @@ export async function POST(request: Request) {
       { error: 'Solo un administrador puede crear temporadas.' },
       { status: 403 },
     );
+  if (body.action === 'updateRewards') {
+    const season = await db()
+      .prepare(
+        'SELECT id FROM organization_seasons WHERE id=? AND organization_id=?',
+      )
+      .bind(body.seasonId, body.organizationId)
+      .first();
+    if (!season)
+      return Response.json({ error: 'La temporada no existe.' }, { status: 404 });
+    await db()
+      .prepare(
+        'UPDATE organization_seasons SET prize_text=?,penalty_text=? WHERE id=?',
+      )
+      .bind(
+        (body.prizeText ?? '').trim().slice(0, 200),
+        (body.penaltyText ?? '').trim().slice(0, 200),
+        body.seasonId,
+      )
+      .run();
+    return Response.json({ ok: true });
+  }
   const name = (body.name ?? '').trim();
   if (name.length < 3)
     return Response.json(
