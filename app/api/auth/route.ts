@@ -1,6 +1,7 @@
 import {
   createSession,
   currentUser,
+  ensureDevelopmentUsers,
   hashPassword,
   isSuperAdmin,
   sessionCookie,
@@ -9,12 +10,14 @@ import {
 import { db, ensureDatabase } from '@/lib/server-store';
 
 export async function GET(request: Request) {
+  await ensureDevelopmentUsers();
   const user = await currentUser(request);
   return Response.json({
     user: user ? { ...user, isSuperAdmin: isSuperAdmin(user) } : null,
   });
 }
 export async function POST(request: Request) {
+  await ensureDevelopmentUsers();
   await ensureDatabase();
   const body = (await request.json()) as {
     action: string;

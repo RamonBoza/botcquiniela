@@ -1,6 +1,9 @@
 import { db, ensureDatabase } from '@/lib/server-store';
 
 const encoder = new TextEncoder();
+const developmentSeed = globalThis as typeof globalThis & {
+  quinielaDevelopmentUsers?: Promise<void>;
+};
 const bytesToHex = (bytes: Uint8Array) =>
   Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 const hexToBytes = (hex: string) =>
@@ -41,6 +44,39 @@ export async function verifyPassword(
   expected: string,
 ) {
   return (await hashPassword(password, salt)).hash === expected;
+}
+export async function ensureDevelopmentUsers() {
+  if (
+    process.env.NODE_ENV === 'production' ||
+    process.env.DEV_SEED_USERS !== 'true'
+  )
+    return;
+  developmentSeed.quinielaDevelopmentUsers ??= (async () => {
+    await ensureDatabase();
+    const password = process.env.DEV_SEED_PASSWORD ?? 'test1234';
+    const users = [
+      { username: 'boza', displayName: 'Boza' },
+      { username: 'dos', displayName: 'Dos' },
+      { username: 'tres', displayName: 'Tres' },
+    ];
+    for (const user of users) {
+      const secured = await hashPassword(password);
+      await db()
+        .prepare(
+          'INSERT INTO users (id,username,display_name,password_hash,password_salt,created_at) VALUES (?,?,?,?,?,?) ON CONFLICT(username) DO UPDATE SET display_name=excluded.display_name,password_hash=excluded.password_hash,password_salt=excluded.password_salt',
+        )
+        .bind(
+          crypto.randomUUID(),
+          user.username,
+          user.displayName,
+          secured.hash,
+          secured.salt,
+          Date.now(),
+        )
+        .run();
+    }
+  })();
+  return developmentSeed.quinielaDevelopmentUsers;
 }
 export const sessionCookie = (token: string, maxAge = 60 * 60 * 24 * 30) =>
   `qc_session=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`;

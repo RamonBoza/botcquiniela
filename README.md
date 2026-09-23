@@ -21,6 +21,11 @@ Crea `.env.local` con `SUPERADMIN_USERNAMES=tu_usuario` para habilitar el panel
 global en tu sesión local. `DATABASE_URL` solo es necesaria si prefieres usar
 una base Postgres externa también durante el desarrollo.
 
+Para crear automáticamente las cuentas locales `boza`, `dos` y `tres`, añade
+`DEV_SEED_USERS=true`. Las tres usarán `DEV_SEED_PASSWORD` (por defecto,
+`test1234`). El sembrado es idempotente, restaura esa contraseña al reiniciar el
+servidor y está deshabilitado de forma explícita en producción.
+
 La app importa el JSON estándar de BOTC mediante `BotcJsonScriptImporter`.
 Postgres conserva usuarios, organizaciones, invitaciones, partidas y apuestas.
 Las elecciones y el setup permanecen ocultos hasta que la partida finaliza.
