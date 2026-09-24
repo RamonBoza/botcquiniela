@@ -1056,34 +1056,53 @@ function LiveOrganizationDashboard({
             )}
             {selectedSeasonId && (
               <div className="mt-4 grid gap-3 border-t border-white/[.06] pt-4 sm:grid-cols-2">
-                <label className="text-xs text-zinc-500">
-                  Premio de la temporada
-                  <Input
-                    value={seasonPrize}
-                    readOnly={current?.role !== 'ADMIN'}
-                    onChange={(event) => setSeasonPrize(event.target.value)}
-                    placeholder="Ej. cena pagada por el último"
-                    className="mt-1.5 h-10 bg-white/[.03]"
-                  />
-                </label>
-                <label className="text-xs text-zinc-500">
-                  Penitencia de la temporada
-                  <Input
-                    value={seasonPenalty}
-                    readOnly={current?.role !== 'ADMIN'}
-                    onChange={(event) => setSeasonPenalty(event.target.value)}
-                    placeholder="Ej. narrar la siguiente partida"
-                    className="mt-1.5 h-10 bg-white/[.03]"
-                  />
-                </label>
-                {current?.role === 'ADMIN' && (
-                  <Button
-                    variant="outline"
-                    onClick={saveSeasonRewards}
-                    className="sm:col-span-2"
-                  >
-                    Guardar premio y penitencia
-                  </Button>
+                {current?.role === 'ADMIN' ? (
+                  <>
+                    <label className="text-xs text-zinc-500">
+                      Premio de la temporada
+                      <Input
+                        value={seasonPrize}
+                        onChange={(event) => setSeasonPrize(event.target.value)}
+                        placeholder="Ej. cena pagada por el último"
+                        className="mt-1.5 h-10 bg-white/[.03]"
+                      />
+                    </label>
+                    <label className="text-xs text-zinc-500">
+                      Penitencia de la temporada
+                      <Input
+                        value={seasonPenalty}
+                        onChange={(event) => setSeasonPenalty(event.target.value)}
+                        placeholder="Ej. narrar la siguiente partida"
+                        className="mt-1.5 h-10 bg-white/[.03]"
+                      />
+                    </label>
+                    <Button
+                      variant="outline"
+                      onClick={saveSeasonRewards}
+                      className="sm:col-span-2"
+                    >
+                      Guardar premio y penitencia
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <div className="rounded-xl border border-[#d9ae5f]/20 bg-[#d9ae5f]/5 p-4">
+                      <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#d9ae5f]">
+                        <Trophy className="size-4" /> Premio
+                      </p>
+                      <p className="mt-2 text-sm text-zinc-200">
+                        {seasonPrize || 'Todavía no se ha definido.'}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-red-400/15 bg-red-400/5 p-4">
+                      <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-red-300">
+                        <ScrollText className="size-4" /> Penitencia
+                      </p>
+                      <p className="mt-2 text-sm text-zinc-200">
+                        {seasonPenalty || 'Todavía no se ha definido.'}
+                      </p>
+                    </div>
+                  </>
                 )}
               </div>
             )}
