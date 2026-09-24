@@ -145,6 +145,8 @@ export async function POST(request: Request) {
     );
   const id = crypto.randomUUID();
   const now = Date.now();
+  const prizeText = (body.prizeText ?? '').trim().slice(0, 200);
+  const penaltyText = (body.penaltyText ?? '').trim().slice(0, 200);
   await db().batch([
     db()
       .prepare(
@@ -153,9 +155,18 @@ export async function POST(request: Request) {
       .bind(now, body.organizationId),
     db()
       .prepare(
-        "INSERT INTO organization_seasons (id,organization_id,name,status,starts_at,created_by,created_at) VALUES (?,?,?,'ACTIVE',?,?,?)",
+        "INSERT INTO organization_seasons (id,organization_id,name,status,prize_text,penalty_text,starts_at,created_by,created_at) VALUES (?,?,?,'ACTIVE',?,?,?,?,?)",
       )
-      .bind(id, body.organizationId, name, now, user.id, now),
+      .bind(
+        id,
+        body.organizationId,
+        name,
+        prizeText,
+        penaltyText,
+        now,
+        user.id,
+        now,
+      ),
   ]);
   return Response.json(
     {
@@ -163,6 +174,8 @@ export async function POST(request: Request) {
         id,
         name,
         status: 'ACTIVE',
+        prizeText,
+        penaltyText,
         startsAt: now,
         endsAt: null,
         gameCount: 0,

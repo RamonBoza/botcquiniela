@@ -740,6 +740,8 @@ function LiveOrganizationDashboard({
   const [selectedSeasonId, setSelectedSeasonId] = useState('');
   const [standings, setStandings] = useState<SeasonStanding[]>([]);
   const [newSeason, setNewSeason] = useState('');
+  const [newSeasonPrize, setNewSeasonPrize] = useState('');
+  const [newSeasonPenalty, setNewSeasonPenalty] = useState('');
   const [seasonPrize, setSeasonPrize] = useState('');
   const [seasonPenalty, setSeasonPenalty] = useState('');
   const [active, setActive] = useState('');
@@ -846,7 +848,12 @@ function LiveOrganizationDashboard({
     const response = await apiFetch('/api/seasons', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ organizationId: active, name: newSeason }),
+      body: JSON.stringify({
+        organizationId: active,
+        name: newSeason,
+        prizeText: newSeasonPrize,
+        penaltyText: newSeasonPenalty,
+      }),
     });
     const data = await response.json();
     if (!response.ok) {
@@ -854,6 +861,8 @@ function LiveOrganizationDashboard({
       return;
     }
     setNewSeason('');
+    setNewSeasonPrize('');
+    setNewSeasonPenalty('');
     setMessage(`La temporada «${data.season.name}» ya está activa.`);
     await loadSeasons(active, data.season.id);
   };
@@ -1005,20 +1014,44 @@ function LiveOrganizationDashboard({
               </select>
             )}
             {current?.role === 'ADMIN' && (
-              <div className="mt-3 flex gap-2">
-                <Input
-                  value={newSeason}
-                  onChange={(event) => setNewSeason(event.target.value)}
-                  placeholder="Nueva temporada"
-                  className="h-11 bg-white/[.03]"
-                />
-                <Button
-                  variant="outline"
-                  disabled={newSeason.trim().length < 3}
-                  onClick={createSeason}
-                >
-                  Crear
-                </Button>
+              <div className="mt-3 space-y-2">
+                <div className="flex gap-2">
+                  <Input
+                    value={newSeason}
+                    onChange={(event) => setNewSeason(event.target.value)}
+                    placeholder="Nueva temporada"
+                    className="h-11 bg-white/[.03]"
+                  />
+                  <Button
+                    variant="outline"
+                    disabled={newSeason.trim().length < 3}
+                    onClick={createSeason}
+                  >
+                    Crear
+                  </Button>
+                </div>
+                {newSeason.trim().length > 0 && (
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <Input
+                      value={newSeasonPrize}
+                      onChange={(event) =>
+                        setNewSeasonPrize(event.target.value)
+                      }
+                      placeholder="Premio de la nueva temporada"
+                      maxLength={200}
+                      className="h-10 bg-white/[.03]"
+                    />
+                    <Input
+                      value={newSeasonPenalty}
+                      onChange={(event) =>
+                        setNewSeasonPenalty(event.target.value)
+                      }
+                      placeholder="Penitencia de la nueva temporada"
+                      maxLength={200}
+                      className="h-10 bg-white/[.03]"
+                    />
+                  </div>
+                )}
               </div>
             )}
             {selectedSeasonId && (
