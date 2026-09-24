@@ -3,6 +3,40 @@ import { db } from '@/lib/server-store';
 import { validateSetupSelection } from '@/lib/setup-rules';
 import type { ImportedCharacter } from '@/lib/botc-script-importer';
 
+export async function GET(request: Request) {
+  const user = await requireUser(request);
+  const gameId = new URL(request.url).searchParams.get('gameId');
+  const game = await db()
+    .prepare(
+      "SELECT g.organization_id AS organizationId FROM app_games g JOIN organization_members admin ON admin.organization_id=g.organization_id WHERE g.id=? AND admin.user_id=? AND admin.role='ADMIN'",
+    )
+    .bind(gameId, user.id)
+    .first<{ organizationId: string }>();
+  if (!game)
+    return Response.json(
+      { error: 'No tienes permiso para gestionar esta quiniela.' },
+      { status: 403 },
+    );
+  const members = await db()
+    .prepare(
+      'SELECT u.id AS userId,u.username,u.display_name AS displayName,m.role,p.updated_at AS predictionUpdatedAt FROM organization_members m JOIN users u ON u.id=m.user_id LEFT JOIN app_predictions p ON p.user_id=u.id AND p.game_id=? WHERE m.organization_id=? ORDER BY CASE WHEN p.id IS NULL THEN 1 ELSE 0 END,u.display_name',
+    )
+    .bind(gameId, game.organizationId)
+    .all<{
+      userId: string;
+      username: string;
+      displayName: string;
+      role: 'ADMIN' | 'MEMBER';
+      predictionUpdatedAt: number | null;
+    }>();
+  return Response.json({
+    members: members.results.map((member) => ({
+      ...member,
+      hasPrediction: member.predictionUpdatedAt !== null,
+    })),
+  });
+}
+
 export async function POST(request: Request) {
   const user = await requireUser(request);
   const body = (await request.json()) as {

@@ -340,6 +340,7 @@ export function QuinielaApp() {
       )}
       {view === 'host' && (
         <Host
+          gameId={gameId}
           name={`${name} · ${org}`}
           players={players}
           status={status}
@@ -1767,6 +1768,7 @@ function CharacterCard({
 }
 
 function Host(p: {
+  gameId: string;
   name: string;
   players: number;
   status: 'OPEN' | 'LOCKED' | 'FINISHED';
@@ -1777,6 +1779,39 @@ function Host(p: {
   finish: () => void;
 }) {
   const [setup, setSetup] = useState(false);
+  const [members, setMembers] = useState<
+    {
+      userId: string;
+      displayName: string;
+      username: string;
+      hasPrediction: boolean;
+      predictionUpdatedAt: number | null;
+    }[]
+  >([]);
+  const [membersError, setMembersError] = useState('');
+  const loadMembers = () => {
+    if (!p.gameId) return;
+    setMembersError('');
+    apiFetch(`/api/games/manage?gameId=${encodeURIComponent(p.gameId)}`)
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok)
+          throw new Error(data.error ?? 'No se ha podido cargar la participación.');
+        setMembers(data.members ?? []);
+      })
+      .catch((reason) =>
+        setMembersError(
+          reason instanceof Error
+            ? reason.message
+            : 'No se ha podido cargar la participación.',
+        ),
+      );
+  };
+  useEffect(() => {
+    loadMembers();
+  }, [p.gameId, p.status]);
+  const completedMembers = members.filter((member) => member.hasPrediction);
+  const pendingMembers = members.filter((member) => !member.hasPrediction);
   if (setup)
     return (
       <section className="mx-auto max-w-5xl px-4 py-8">
@@ -1875,18 +1910,72 @@ function Host(p: {
           <div>
             <p className="text-sm text-zinc-400">Quinielas recibidas</p>
             <p className="display text-3xl font-bold">
-              11 <span className="text-lg text-zinc-500">/ {p.players}</span>
+              {completedMembers.length}{' '}
+              <span className="text-lg text-zinc-500">/ {members.length}</span>
             </p>
           </div>
         </div>
         <Progress
-          value={11 / p.players}
+          value={members.length ? completedMembers.length / members.length : 0}
           className="mt-4 [&_[data-slot=progress-track]]:h-1.5 [&_[data-slot=progress-indicator]]:bg-[#d9ae5f]"
         />
-        <p className="mt-4 flex items-center gap-2 text-xs text-zinc-500">
-          <LockKeyhole className="size-3.5" /> Las elecciones permanecen ocultas
-          para todos.
-        </p>
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <p className="flex items-center gap-2 text-xs text-zinc-500">
+            <LockKeyhole className="size-3.5" /> Solo ves quién ha participado,
+            no sus elecciones.
+          </p>
+          <button
+            type="button"
+            onClick={loadMembers}
+            className="shrink-0 text-xs font-bold text-[#d9ae5f]"
+          >
+            Actualizar
+          </button>
+        </div>
+        {membersError ? (
+          <p className="mt-4 text-sm text-red-300">{membersError}</p>
+        ) : (
+          <div className="mt-5 grid gap-4 border-t border-white/[.06] pt-4 sm:grid-cols-2">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+                Han apostado · {completedMembers.length}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {completedMembers.map((member) => (
+                  <span
+                    key={member.userId}
+                    className="rounded-full bg-emerald-400/10 px-2.5 py-1 text-xs text-emerald-200"
+                  >
+                    ✓ {member.displayName}
+                  </span>
+                ))}
+                {completedMembers.length === 0 && (
+                  <span className="text-xs text-zinc-600">Todavía nadie.</span>
+                )}
+              </div>
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-amber-300">
+                Pendientes · {pendingMembers.length}
+              </p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {pendingMembers.map((member) => (
+                  <span
+                    key={member.userId}
+                    className="rounded-full bg-amber-300/10 px-2.5 py-1 text-xs text-amber-100"
+                  >
+                    ⏳ {member.displayName}
+                  </span>
+                ))}
+                {pendingMembers.length === 0 && (
+                  <span className="text-xs text-emerald-300">
+                    Todo el mundo ha apostado.
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       <div className="mt-5 rounded-2xl border bg-[#f4efe4] p-6 text-center text-[#17120a]">
         <QRCodeSVG
