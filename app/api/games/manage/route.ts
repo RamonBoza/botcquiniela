@@ -1,5 +1,7 @@
 import { requireUser } from '@/lib/server-auth';
 import { db } from '@/lib/server-store';
+import { validateSetupSelection } from '@/lib/setup-rules';
+import type { ImportedCharacter } from '@/lib/botc-script-importer';
 
 export async function POST(request: Request) {
   const user = await requireUser(request);
@@ -35,21 +37,20 @@ export async function POST(request: Request) {
   }
   if (body.action === 'finish' && game.status === 'LOCKED') {
     const actual = body.actualCharacterIds;
-    const allowed = new Set(
-      (JSON.parse(game.charactersJson) as { id: string }[]).map(
-        (character) => character.id,
-      ),
-    );
-    if (
-      !Array.isArray(actual) ||
-      actual.length > game.playerCount ||
-      new Set(actual).size !== actual.length ||
-      actual.some((id) => !allowed.has(id))
-    )
+    if (!Array.isArray(actual))
       return Response.json(
         { error: 'El setup contiene personajes no válidos.' },
         { status: 400 },
       );
+    const characters = JSON.parse(game.charactersJson) as ImportedCharacter[];
+    const validation = validateSetupSelection({
+      playerCount: Number(game.playerCount),
+      selectedIds: actual,
+      characters,
+      allowDuplicates: characters.some((character) => character.id === 'atheist'),
+    });
+    if (!validation.valid)
+      return Response.json({ error: validation.error }, { status: 400 });
     await db()
       .prepare(
         "UPDATE app_games SET status='FINISHED',actual_character_ids_json=? WHERE id=?",

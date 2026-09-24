@@ -37,6 +37,7 @@ import {
   type ImportedCharacter,
   type ImportedScript,
 } from '@/lib/botc-script-importer';
+import { getSetupLimits, validateSetupSelection } from '@/lib/setup-rules';
 
 type View =
   | 'auth'
@@ -1507,17 +1508,24 @@ function Selector(p: {
       ),
     [p.script, p.selected],
   );
-  const standard = roleDistribution(p.playerCount);
+  const setupLimits = getSetupLimits(p.playerCount, p.selected);
   const selectionLimitReached =
     p.mode === 'prediction' && p.selected.length >= p.playerCount;
   const toggle = (id: string) => {
     if (p.status !== 'OPEN') return;
     if (!p.selected.includes(id) && selectionLimitReached) return;
-    p.setSelected(
-      p.selected.includes(id)
-        ? p.selected.filter((x) => x !== id)
-        : [...p.selected, id],
-    );
+    const next = p.selected.includes(id)
+      ? p.selected.filter((x) => x !== id)
+      : [...p.selected, id];
+    if (
+      !validateSetupSelection({
+        playerCount: p.playerCount,
+        selectedIds: next,
+        characters: p.script.characters,
+      }).valid
+    )
+      return;
+    p.setSelected(next);
   };
   return (
     <section className="pb-36">
@@ -1589,7 +1597,7 @@ function Selector(p: {
           <div className="mt-4 grid grid-cols-4 gap-2">
             {groups.map((g, i) => {
               const current = Number(counts[g.role]);
-              const target = standard[i];
+              const target = setupLimits[g.role];
               return (
                 <div
                   key={g.role}
@@ -1620,6 +1628,19 @@ function Selector(p: {
           selectionLimitReached={
             selectionLimitReached || p.status !== 'OPEN'
           }
+          disabledCharacterIds={new Set(
+            p.script.characters
+              .filter((character) => !p.selected.includes(character.id))
+              .filter(
+                (character) =>
+                  !validateSetupSelection({
+                    playerCount: p.playerCount,
+                    selectedIds: [...p.selected, character.id],
+                    characters: p.script.characters,
+                  }).valid,
+              )
+              .map((character) => character.id),
+          )}
         />
       </div>
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/8 bg-[#100e14]/92 p-4 backdrop-blur-xl">
@@ -1652,11 +1673,13 @@ function CharacterGrid({
   selected,
   toggle,
   selectionLimitReached = false,
+  disabledCharacterIds = new Set<string>(),
 }: {
   script: ImportedScript;
   selected: string[];
   toggle: (id: string) => void;
   selectionLimitReached?: boolean;
+  disabledCharacterIds?: Set<string>;
 }) {
   return (
     <div className="mt-10 space-y-10">
@@ -1683,7 +1706,10 @@ function CharacterGrid({
                   label={group.singular}
                   color={group.color}
                   toggle={toggle}
-                  disabled={selectionLimitReached && !selected.includes(char.id)}
+                  disabled={
+                    !selected.includes(char.id) &&
+                    (selectionLimitReached || disabledCharacterIds.has(char.id))
+                  }
                 />
               ))}
             </div>
@@ -1769,17 +1795,63 @@ function Host(p: {
         <CharacterGrid
           script={p.script}
           selected={p.actual}
-          toggle={(id) =>
-            p.setActual(
-              p.actual.includes(id)
-                ? p.actual.filter((x) => x !== id)
-                : p.actual.length < p.players
-                  ? [...p.actual, id]
-                  : p.actual,
+          toggle={(id) => {
+            if (p.actual.includes(id)) {
+              const next = [...p.actual];
+              next.splice(next.lastIndexOf(id), 1);
+              p.setActual(next);
+              return;
+            }
+            const next = [...p.actual, id];
+            if (
+              validateSetupSelection({
+                playerCount: p.players,
+                selectedIds: next,
+                characters: p.script.characters,
+                allowDuplicates: p.script.characters.some(
+                  (character) => character.id === 'atheist',
+                ),
+              }).valid
             )
-          }
+              p.setActual(next);
+          }}
           selectionLimitReached={p.actual.length >= p.players}
         />
+        {p.script.characters.some((character) => character.id === 'atheist') &&
+          p.actual.length > 0 && (
+            <div className="mt-6 rounded-xl border border-[#d9ae5f]/20 bg-[#d9ae5f]/5 p-4">
+              <p className="text-xs font-bold uppercase tracking-wider text-[#d9ae5f]">
+                Excepción del Ateo · duplicados permitidos
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {[...new Set(p.actual)].map((id) => {
+                  const character = p.script.characters.find(
+                    (candidate) => candidate.id === id,
+                  );
+                  const count = p.actual.filter((value) => value === id).length;
+                  const duplicated = [...p.actual, id];
+                  const canDuplicate = validateSetupSelection({
+                    playerCount: p.players,
+                    selectedIds: duplicated,
+                    characters: p.script.characters,
+                    allowDuplicates: true,
+                  }).valid;
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      disabled={!canDuplicate}
+                      onClick={() => p.setActual(duplicated)}
+                      className="rounded-full border border-white/10 bg-black/15 px-3 py-1.5 text-xs disabled:opacity-40"
+                    >
+                      {character?.localizedName ?? character?.name ?? id} ×{count}{' '}
+                      <b className="text-[#d9ae5f]">+ duplicar</b>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         <Button
           onClick={p.finish}
           className="mt-10 h-14 w-full bg-[#d9ae5f] text-base font-extrabold text-[#17120a]"

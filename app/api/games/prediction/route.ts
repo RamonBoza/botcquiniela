@@ -1,5 +1,7 @@
 import { requireUser } from '@/lib/server-auth';
 import { db } from '@/lib/server-store';
+import { validateSetupSelection } from '@/lib/setup-rules';
+import type { ImportedCharacter } from '@/lib/botc-script-importer';
 
 export async function GET(request: Request) {
   const user = await requireUser(request);
@@ -50,20 +52,19 @@ export async function POST(request: Request) {
       { error: 'La selección contiene personajes no válidos.' },
       { status: 400 },
     );
-  if (
-    body.characterIds.length > game.playerCount ||
-    new Set(body.characterIds).size !== body.characterIds.length
-  )
+  const characters = JSON.parse(game.charactersJson) as ImportedCharacter[];
+  const validation = validateSetupSelection({
+    playerCount: Number(game.playerCount),
+    selectedIds: body.characterIds,
+    characters,
+  });
+  if (!validation.valid)
     return Response.json(
-      {
-        error: `Puedes elegir como máximo ${game.playerCount} personajes diferentes.`,
-      },
+      { error: validation.error },
       { status: 400 },
     );
   const allowed = new Set(
-    (JSON.parse(game.charactersJson) as { id: string }[]).map(
-      (character) => character.id,
-    ),
+    characters.map((character) => character.id),
   );
   if (body.characterIds.some((id) => !allowed.has(id)))
     return Response.json(
