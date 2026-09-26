@@ -37,7 +37,12 @@ import {
   type ImportedCharacter,
   type ImportedScript,
 } from '@/lib/botc-script-importer';
-import { getSetupLimits, validateSetupSelection } from '@/lib/setup-rules';
+import {
+  getSetupLimits,
+  MAX_VILLAGE_IDIOTS,
+  validateSetupSelection,
+  VILLAGE_IDIOT_ID,
+} from '@/lib/setup-rules';
 
 type View =
   | 'auth'
@@ -1695,6 +1700,17 @@ function Selector(p: {
               .map((character) => character.id),
           )}
         />
+        {p.script.characters.some(
+          (character) => character.id === VILLAGE_IDIOT_ID,
+        ) && (
+          <VillageIdiotCopies
+            selected={p.selected}
+            setSelected={p.setSelected}
+            playerCount={p.playerCount}
+            characters={p.script.characters}
+            disabled={p.status !== 'OPEN'}
+          />
+        )}
       </div>
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/8 bg-[#100e14]/92 p-4 backdrop-blur-xl">
         <div className="mx-auto max-w-xl">
@@ -1756,6 +1772,7 @@ function CharacterGrid({
                   key={char.id}
                   char={char}
                   active={selected.includes(char.id)}
+                  count={selected.filter((id) => id === char.id).length}
                   label={group.singular}
                   color={group.color}
                   toggle={toggle}
@@ -1775,6 +1792,7 @@ function CharacterGrid({
 function CharacterCard({
   char,
   active,
+  count,
   label,
   color,
   toggle,
@@ -1782,6 +1800,7 @@ function CharacterCard({
 }: {
   char: ImportedCharacter;
   active: boolean;
+  count: number;
   label: string;
   color: string;
   toggle: (id: string) => void;
@@ -1812,10 +1831,82 @@ function CharacterCard({
       <strong className="display block text-lg leading-tight">
         {char.localizedName ?? char.name}
       </strong>
+      {count > 1 && (
+        <span className="mt-1 inline-block rounded-full bg-[#d9ae5f]/15 px-2 py-0.5 text-xs font-bold text-[#d9ae5f]">
+          ×{count}
+        </span>
+      )}
       <small className="mt-1 block text-[10px] uppercase tracking-wider text-zinc-500">
         {label}
       </small>
     </button>
+  );
+}
+
+function VillageIdiotCopies({
+  selected,
+  setSelected,
+  playerCount,
+  characters,
+  disabled = false,
+}: {
+  selected: string[];
+  setSelected: (selected: string[]) => void;
+  playerCount: number;
+  characters: ImportedCharacter[];
+  disabled?: boolean;
+}) {
+  const count = selected.filter((id) => id === VILLAGE_IDIOT_ID).length;
+  if (count === 0) return null;
+  const withAnother = [...selected, VILLAGE_IDIOT_ID];
+  const canAdd =
+    !disabled &&
+    count < MAX_VILLAGE_IDIOTS &&
+    validateSetupSelection({
+      playerCount,
+      selectedIds: withAnother,
+      characters,
+    }).valid;
+  const removeOne = () => {
+    const next = [...selected];
+    next.splice(next.lastIndexOf(VILLAGE_IDIOT_ID), 1);
+    setSelected(next);
+  };
+  return (
+    <div className="mt-5 rounded-xl border border-[#5ba9d6]/25 bg-[#5ba9d6]/5 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wider text-[#77aee7]">
+            Regla especial · Village Idiot
+          </p>
+          <p className="mt-1 text-sm text-zinc-300">
+            Has elegido {count}. Puedes incluir hasta {MAX_VILLAGE_IDIOTS}.
+          </p>
+          {count > 1 && (
+            <p className="mt-1 text-xs text-zinc-500">
+              Una de las copias extra estará borracha.
+            </p>
+          )}
+        </div>
+        {!disabled && (
+          <div className="flex gap-2">
+            {count > 1 && (
+              <Button type="button" variant="outline" onClick={removeOne}>
+                − Quitar uno
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!canAdd}
+              onClick={() => setSelected(withAnother)}
+            >
+              + Añadir otro
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -1904,6 +1995,19 @@ function Host(p: {
           }}
           selectionLimitReached={p.actual.length >= p.players}
         />
+        {p.script.characters.some(
+          (character) => character.id === VILLAGE_IDIOT_ID,
+        ) &&
+          !p.script.characters.some(
+            (character) => character.id === 'atheist',
+          ) && (
+            <VillageIdiotCopies
+              selected={p.actual}
+              setSelected={p.setActual}
+              playerCount={p.players}
+              characters={p.script.characters}
+            />
+          )}
         {p.script.characters.some((character) => character.id === 'atheist') &&
           p.actual.length > 0 && (
             <div className="mt-6 rounded-xl border border-[#d9ae5f]/20 bg-[#d9ae5f]/5 p-4">

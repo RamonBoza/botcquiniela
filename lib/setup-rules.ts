@@ -3,6 +3,9 @@ import { getRoleDistribution } from '@/lib/role-distribution';
 
 export type SetupLimits = Record<ImportedCharacter['type'], number>;
 
+export const VILLAGE_IDIOT_ID = 'villageidiot';
+export const MAX_VILLAGE_IDIOTS = 3;
+
 export function getSetupLimits(
   playerCount: number,
   selectedIds: string[],
@@ -56,8 +59,20 @@ export function validateSetupSelection({
 }) {
   if (selectedIds.length > playerCount)
     return { valid: false, error: `Puedes elegir como máximo ${playerCount} personajes.` };
-  if (!allowDuplicates && new Set(selectedIds).size !== selectedIds.length)
-    return { valid: false, error: 'No se permiten personajes duplicados.' };
+  if (!allowDuplicates) {
+    const copies = new Map<string, number>();
+    for (const id of selectedIds) copies.set(id, (copies.get(id) ?? 0) + 1);
+    for (const [id, count] of copies) {
+      if (count <= 1) continue;
+      if (id === VILLAGE_IDIOT_ID && count <= MAX_VILLAGE_IDIOTS) continue;
+      if (id === VILLAGE_IDIOT_ID)
+        return {
+          valid: false,
+          error: `Puede haber entre 1 y ${MAX_VILLAGE_IDIOTS} Village Idiots.`,
+        };
+      return { valid: false, error: 'No se permiten personajes duplicados.' };
+    }
+  }
   const byId = new Map(characters.map((character) => [character.id, character]));
   if (selectedIds.some((id) => !byId.has(id)))
     return { valid: false, error: 'La selección contiene personajes no válidos.' };

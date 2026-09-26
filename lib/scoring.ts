@@ -15,23 +15,37 @@ export function calculateScore(
   characters: ImportedCharacter[],
   playerCount: number,
 ): ScoreBreakdown {
-  const predictedSet = new Set(predicted);
-  const actualSet = new Set(actual);
+  const countById = (ids: string[]) => {
+    const counts = new Map<string, number>();
+    for (const id of ids) counts.set(id, (counts.get(id) ?? 0) + 1);
+    return counts;
+  };
+  const predictedCounts = countById(predicted);
+  const actualCounts = countById(actual);
   const actualByType = (type: ImportedCharacter['type']) =>
-    characters
-      .filter((character) => character.type === type && actualSet.has(character.id))
-      .map((character) => character.id);
+    actual.filter(
+      (id) => characters.find((character) => character.id === id)?.type === type,
+    );
   const completed = (ids: string[]) =>
-    ids.length > 0 && ids.every((id) => predictedSet.has(id));
-  const hits = [...predictedSet].filter((id) => actualSet.has(id)).length;
+    ids.length > 0 &&
+    [...countById(ids)].every(
+      ([id, count]) => (predictedCounts.get(id) ?? 0) >= count,
+    );
+  const hits = [...actualCounts].reduce(
+    (total, [id, count]) =>
+      total + Math.min(count, predictedCounts.get(id) ?? 0),
+    0,
+  );
   const townsfolkBonus = completed(actualByType('TOWNSFOLK')) ? 2 : 0;
   const outsiderBonus = completed(actualByType('OUTSIDER')) ? 1 : 0;
   const minionBonus = completed(actualByType('MINION')) ? 1 : 0;
   const fullHouse15Bonus =
     playerCount === 15 &&
-    actualSet.size === 15 &&
-    predictedSet.size === 15 &&
-    [...actualSet].every((id) => predictedSet.has(id))
+    actual.length === 15 &&
+    predicted.length === 15 &&
+    [...actualCounts].every(
+      ([id, count]) => (predictedCounts.get(id) ?? 0) === count,
+    )
       ? 3
       : 0;
   return {
