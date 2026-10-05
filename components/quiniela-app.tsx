@@ -38,7 +38,9 @@ import {
   type ImportedScript,
 } from '@/lib/botc-script-importer';
 import {
+  getLegionDistribution,
   getSetupLimits,
+  LEGION_ID,
   MAX_VILLAGE_IDIOTS,
   validateSetupSelection,
   VILLAGE_IDIOT_ID,
@@ -1678,6 +1680,15 @@ function Selector(p: {
               );
             })}
           </div>
+          {p.selected.includes(LEGION_ID) && (
+            <p className="mt-3 text-xs leading-5 text-[#d9ae5f]">
+              Setup de Legion: se recomienda{' '}
+              {getLegionDistribution(p.playerCount).legion} Legion y{' '}
+              {getLegionDistribution(p.playerCount).good} personajes buenos,
+              que pueden ser aldeanos o forasteros en cualquier combinación.
+              No hay esbirros ni otros demonios.
+            </p>
+          )}
         </div>
         <CharacterGrid
           script={p.script}
@@ -1704,6 +1715,17 @@ function Selector(p: {
           (character) => character.id === VILLAGE_IDIOT_ID,
         ) && (
           <VillageIdiotCopies
+            selected={p.selected}
+            setSelected={p.setSelected}
+            playerCount={p.playerCount}
+            characters={p.script.characters}
+            disabled={p.status !== 'OPEN'}
+          />
+        )}
+        {p.script.characters.some(
+          (character) => character.id === LEGION_ID,
+        ) && (
+          <LegionCopies
             selected={p.selected}
             setSelected={p.setSelected}
             playerCount={p.playerCount}
@@ -1910,6 +1932,74 @@ function VillageIdiotCopies({
   );
 }
 
+function LegionCopies({
+  selected,
+  setSelected,
+  playerCount,
+  characters,
+  disabled = false,
+}: {
+  selected: string[];
+  setSelected: (selected: string[]) => void;
+  playerCount: number;
+  characters: ImportedCharacter[];
+  disabled?: boolean;
+}) {
+  const count = selected.filter((id) => id === LEGION_ID).length;
+  if (count === 0) return null;
+  const distribution = getLegionDistribution(playerCount);
+  const withAnother = [...selected, LEGION_ID];
+  const canAdd =
+    !disabled &&
+    count < distribution.legion &&
+    validateSetupSelection({
+      playerCount,
+      selectedIds: withAnother,
+      characters,
+    }).valid;
+  const removeOne = () => {
+    const next = [...selected];
+    next.splice(next.lastIndexOf(LEGION_ID), 1);
+    setSelected(next);
+  };
+  return (
+    <div className="mt-5 rounded-xl border border-red-400/20 bg-red-400/5 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wider text-red-300">
+            Regla especial · Legion
+          </p>
+          <p className="mt-1 text-sm text-zinc-300">
+            Has elegido {count}. Setup recomendado: {distribution.legion}{' '}
+            Legion y {distribution.good} personajes buenos.
+          </p>
+          <p className="mt-1 text-xs text-zinc-500">
+            Los buenos pueden ser aldeanos o forasteros. No entran esbirros ni
+            otros demonios.
+          </p>
+        </div>
+        {!disabled && (
+          <div className="flex gap-2">
+            {count > 1 && (
+              <Button type="button" variant="outline" onClick={removeOne}>
+                − Quitar uno
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!canAdd}
+              onClick={() => setSelected(withAnother)}
+            >
+              + Añadir Legion
+            </Button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function Host(p: {
   gameId: string;
   name: string;
@@ -2008,6 +2098,16 @@ function Host(p: {
               characters={p.script.characters}
             />
           )}
+        {p.script.characters.some(
+          (character) => character.id === LEGION_ID,
+        ) && (
+          <LegionCopies
+            selected={p.actual}
+            setSelected={p.setActual}
+            playerCount={p.players}
+            characters={p.script.characters}
+          />
+        )}
         {p.script.characters.some((character) => character.id === 'atheist') &&
           p.actual.length > 0 && (
             <div className="mt-6 rounded-xl border border-[#d9ae5f]/20 bg-[#d9ae5f]/5 p-4">
