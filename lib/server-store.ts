@@ -102,6 +102,9 @@ export async function ensureDatabase() {
         'CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token_hash)',
       ),
       d.prepare(
+        'CREATE TABLE IF NOT EXISTS password_recovery_uses (token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL, used_at BIGINT NOT NULL, FOREIGN KEY(user_id) REFERENCES users(id))',
+      ),
+      d.prepare(
         'CREATE INDEX IF NOT EXISTS idx_memberships_user ON organization_members(user_id)',
       ),
       d.prepare(

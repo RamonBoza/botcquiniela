@@ -43,6 +43,21 @@ Las elecciones y el setup permanecen ocultos hasta que la partida finaliza.
 No hace falta ejecutar migraciones manuales para el MVP: el servidor crea de
 forma idempotente las tablas e índices necesarios.
 
+### Recuperación temporal de una cuenta
+
+Si una cuenta pierde su contraseña, crea en Vercel un código aleatorio largo y
+configura temporalmente estas variables de Production:
+
+```text
+PASSWORD_RECOVERY_USERNAME=nombre_de_usuario
+PASSWORD_RECOVERY_TOKEN=código_aleatorio_de_32_caracteres_o_más
+```
+
+Después de redesplegar, el usuario puede pulsar **He olvidado mi contraseña**,
+usar el código una sola vez y elegir una contraseña nueva. El proceso cierra
+sus sesiones anteriores. Elimina ambas variables de Vercel y vuelve a
+redesplegar cuando termine la recuperación.
+
 ## Comprobaciones
 
 ```bash

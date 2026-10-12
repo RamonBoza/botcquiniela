@@ -430,16 +430,19 @@ function AccountAccess({
   }) => void;
 }) {
   const [register, setRegister] = useState(true);
+  const [recover, setRecover] = useState(false);
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [recoveryToken, setRecoveryToken] = useState('');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const submit = async () => {
     if (
-      (register && !name.trim()) ||
+      (register && !recover && !name.trim()) ||
       username.trim().length < 3 ||
-      password.length < 8
+      password.length < 8 ||
+      (recover && recoveryToken.length < 32)
     ) {
       setMessage(
         'Completa los campos. La contraseña debe tener al menos 8 caracteres.',
@@ -449,16 +452,23 @@ function AccountAccess({
     setBusy(true);
     setMessage('');
     try {
-      const response = await apiFetch('/api/auth', {
+      const response = await apiFetch(
+        recover ? '/api/auth/recover' : '/api/auth',
+        {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          action: register ? 'register' : 'login',
-          displayName: name,
-          username,
-          password,
-        }),
-      });
+          body: JSON.stringify(
+            recover
+              ? { username, recoveryToken, newPassword: password }
+              : {
+                  action: register ? 'register' : 'login',
+                  displayName: name,
+                  username,
+                  password,
+                },
+          ),
+        },
+      );
       const data = await response.json().catch(() => ({
         error: 'El servicio no ha podido completar la solicitud.',
       }));
@@ -484,16 +494,22 @@ function AccountAccess({
           Tu identidad en la villa
         </p>
         <h1 className="display mt-2 text-5xl font-bold">
-          {register ? 'Crea tu cuenta' : 'Bienvenido de nuevo'}
+          {recover
+            ? 'Recupera tu cuenta'
+            : register
+              ? 'Crea tu cuenta'
+              : 'Bienvenido de nuevo'}
         </h1>
         <p className="mt-3 text-sm leading-6 text-zinc-400">
-          {register
+          {recover
+            ? 'Introduce el código temporal y elige una contraseña nueva.'
+            : register
             ? 'Sin redes sociales ni SSO. Solo lo necesario para jugar.'
             : 'Entra para ver tus organizaciones y quinielas.'}
         </p>
       </div>
       <div className="mt-8 space-y-3">
-        {register && (
+        {register && !recover && (
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -508,12 +524,22 @@ function AccountAccess({
           autoComplete="username"
           className="h-13 border-white/10 bg-white/[.04] px-4"
         />
+        {recover && (
+          <Input
+            type="password"
+            value={recoveryToken}
+            onChange={(e) => setRecoveryToken(e.target.value)}
+            placeholder="Código temporal de recuperación"
+            autoComplete="one-time-code"
+            className="h-13 border-white/10 bg-white/[.04] px-4"
+          />
+        )}
         <Input
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Contraseña"
-          autoComplete={register ? 'new-password' : 'current-password'}
+          placeholder={recover ? 'Nueva contraseña' : 'Contraseña'}
+          autoComplete={register || recover ? 'new-password' : 'current-password'}
           onKeyDown={(e) => e.key === 'Enter' && submit()}
           className="h-13 border-white/10 bg-white/[.04] px-4"
         />
@@ -523,18 +549,43 @@ function AccountAccess({
           onClick={submit}
           className="h-14 w-full bg-[#d9ae5f] text-base font-extrabold text-[#17120a]"
         >
-          {busy ? 'Conectando…' : register ? 'Crear cuenta' : 'Entrar'}
+          {busy
+            ? 'Conectando…'
+            : recover
+              ? 'Cambiar contraseña'
+              : register
+                ? 'Crear cuenta'
+                : 'Entrar'}
         </Button>
       </div>
       <button
         onClick={() => {
-          setRegister(!register);
+          if (recover) {
+            setRecover(false);
+            setRegister(false);
+          } else setRegister(!register);
           setMessage('');
         }}
         className="mt-6 text-sm text-zinc-400 hover:text-[#d9ae5f]"
       >
-        {register ? 'Ya tengo cuenta' : 'Quiero crear una cuenta'}
+        {recover
+          ? 'Volver al inicio de sesión'
+          : register
+            ? 'Ya tengo cuenta'
+            : 'Quiero crear una cuenta'}
       </button>
+      {!register && !recover && (
+        <button
+          onClick={() => {
+            setRecover(true);
+            setPassword('');
+            setMessage('');
+          }}
+          className="mt-3 text-sm text-zinc-500 hover:text-[#d9ae5f]"
+        >
+          He olvidado mi contraseña
+        </button>
+      )}
     </section>
   );
 }
